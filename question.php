@@ -320,12 +320,11 @@ class qtype_scripted_question extends question_graded_by_strategy implements que
 
     	//parse the response according to the selected response mode
     	$value = $this->parse_response($response);
-    
 	
     	//create a new math evaluation object
         $m = new EvalMath(self::$extensions_allowed);
     	$m->suppress_errors = true;
-    	
+
     	//define all known functions and variables (defined in the init script)
     	$m->vars($this->vars);
     	$m->funcs_raw($this->funcs);
@@ -341,10 +340,6 @@ class qtype_scripted_question extends question_graded_by_strategy implements que
 				//if we're comparing in a non-case-sensitive manner, convert the _answer_ to lowercase
 				if($this->response_mode === qtype_scripted_response_mode::MODE_STRING)
 					$ans = strtolower($ans);
-
-				echo '<!--';
-				print_r(array('ans' => $ans, 'value' => $value));
-				echo '-->';
 
 	 			//if the two are both numeric, compare them loosely, without regard to type; so 5 == "05" is true
                 if(is_numeric($ans) && is_numeric($value))
@@ -470,6 +465,10 @@ class qtype_scripted_question extends question_graded_by_strategy implements que
 
             //handle DECIMAL-mode responses
             case qtype_scripted_response_mode::MODE_NUMERIC:
+
+                //if the string was empty, return false, a non-numeric form of zero
+                if($response['answer'] === '')
+                    return false;
 
                 //get a floating-point interpretation of the answer
                 return floatval($response['answer']);

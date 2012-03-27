@@ -1,7 +1,7 @@
 Scripted question type for Moodle 2.1+
 Allows the instructor to easily generate randomized questions using a powerful, _safe_ scripting language.
 
-Autored by Kyle Temkin, working for Binghamton University <http://www.binghamton.edu>
+Authored by Kyle Temkin, working for Binghamton University <http://www.binghamton.edu>
 
 Includes the full MathScript engine, which allows question types to use MathScript- an extensible scripting 
 language which cannot affect the server's state, and thus should be completely safe

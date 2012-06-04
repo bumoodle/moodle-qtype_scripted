@@ -3,6 +3,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 require_once($CFG->dirroot . '/question/type/scripted/question.php');
+require_once($CFG->dirroot . '/question/type/shortanswer/edit_shortanswer_form.php');
 
 /**
 * Defines the editing form for the scripted question type.
@@ -14,30 +15,14 @@ require_once($CFG->dirroot . '/question/type/scripted/question.php');
 * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
 */
 
-class qtype_scripted_edit_form extends question_edit_form 
+class qtype_scripted_edit_form extends qtype_shortanswer_edit_form //question_edit_form 
 {
-	
-	/*
-    protected function definition_inner($mform) 
-    {
-        $menu = array(
-            get_string('caseno', 'qtype_shortanswer'),
-            get_string('caseyes', 'qtype_shortanswer')
-        );
-        $mform->addElement('select', 'usecase',
-                get_string('casesensitive', 'qtype_shortanswer'), $menu);
 
-        $mform->addElement('static', 'answersinstruct',
-                get_string('correctanswers', 'qtype_shortanswer'),
-                get_string('filloutoneanswer', 'qtype_shortanswer'));
-        $mform->closeHeaderBefore('answersinstruct');
-
-        $this->add_per_answer_fields($mform, get_string('answerno', 'qtype_shortanswer', '{no}'),
-                question_bank::fraction_options());
-
-        $this->add_interactive_settings();
-    }*/
-	
+    /**
+     * FIXME XXX FIXME
+     * Replace all of the hardcoded HTML with $PAGE->requires references.
+     */    
+		
 	/**
 	 * Static routine to insert the header code necessary start a CodeMirror instance, which should syntax highlight the initialization script.
 	 */
@@ -45,12 +30,13 @@ class qtype_scripted_edit_form extends question_edit_form
 	{
 		global $CFG;
 	
-		//add the headers required for syntax highlighting in the init script
+        //add the headers required for syntax highlighting in the init script
+        //TODO: cleanup
 		return  '
-			        	<script src="'.$CFG->wwwroot.'/scripts/codemirror/codemirror.js"></script>
-			        	<script src="'.$CFG->wwwroot.'/scripts/codemirror/calcsane.js"></script>
-						<link rel="stylesheet" href="'.$CFG->wwwroot.'/scripts/codemirror/codemirror.css">
-						<link rel="stylesheet" href="'.$CFG->wwwroot.'/scripts/codemirror/default.css">
+                        <script src="'.$CFG->wwwroot.'/question/type/scripted/scripts/codemirror/codemirror.js"></script>
+			        	<script src="'.$CFG->wwwroot.'/question/type/scripted/scripts/codemirror/calcsane.js"></script>
+						<link rel="stylesheet" href="'.$CFG->wwwroot.'/question/type/scripted/scripts/codemirror/codemirror.css">
+						<link rel="stylesheet" href="'.$CFG->wwwroot.'/question/type/scripted/scripts/codemirror/default.css">
 			        ';
 	}
 	
@@ -125,7 +111,7 @@ class qtype_scripted_edit_form extends question_edit_form
        	
     	//allow more than one possible answer (including distractors)
     	$this->add_per_answer_fields($mform, get_string('answerno', 'qtype_scripted', '{no}'), question_bank::fraction_options(), 2, 2);
-    	;
+    	
 
     }
 
@@ -164,6 +150,6 @@ class qtype_scripted_edit_form extends question_edit_form
    
     public function qtype() 
     {
-        return 'usercode';
+        return 'scripted';
     }
 }

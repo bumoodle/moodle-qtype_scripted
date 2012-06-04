@@ -1,0 +1,9 @@
+.cm-s-elegant span.cm-number, .cm-s-elegant span.cm-string, .cm-s-elegant span.cm-atom {color: #1463A3;}
+.cm-s-elegant span.cm-comment {color: rgb(179, 0, 0);}
+.cm-s-elegant span.cm-immediate {color: #000;}
+.cm-s-elegant span.cm-variable {color: black;}
+.cm-s-elegant span.cm-variable-2 {color: #b11;}
+.cm-s-elegant span.cm-qualifier {color: #555;}
+.cm-s-elegant span.cm-keyword {color: #149AA3; font-weight: bold;}
+.cm-s-elegant span.cm-builtin {color: rgb(20, 99, 163);}
+.cm-s-elegant span.cm-error {background-color: #fdd;}

@@ -2,13 +2,13 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-require_once($CFG->dirroot.'/lib/evalmath/evalmath.class.php');
-require_once($CFG->dirroot.'/lib/evalmath/mathscript_randomization.php');
-require_once($CFG->dirroot.'/lib/evalmath/mathscript_binary.php');
-require_once($CFG->dirroot.'/lib/evalmath/mathscript_control.php');
-require_once($CFG->dirroot.'/lib/evalmath/mathscript_legacy.php');
-require_once($CFG->dirroot.'/lib/evalmath/mathscript_debug.php');
-require_once($CFG->dirroot.'/lib/evalmath/mathscript_string.php');
+require_once($CFG->dirroot.'/question/type/scripted/mathscript/mathscript.class.php');
+require_once($CFG->dirroot.'/question/type/scripted/mathscript/mathscript_randomization.php');
+require_once($CFG->dirroot.'/question/type/scripted/mathscript/mathscript_binary.php');
+require_once($CFG->dirroot.'/question/type/scripted/mathscript/mathscript_control.php');
+require_once($CFG->dirroot.'/question/type/scripted/mathscript/mathscript_legacy.php');
+require_once($CFG->dirroot.'/question/type/scripted/mathscript/mathscript_debug.php');
+require_once($CFG->dirroot.'/question/type/scripted/mathscript/mathscript_string.php');
 
 
 class qtype_scripted_response_mode

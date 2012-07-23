@@ -42,8 +42,7 @@ $string['options'] = 'Question Parameters';
 
 //response modes
 $string['responseform'] = 'Require response to be:';
-$string['resp_string'] = 'STRING (LOWERCASE): A string, which may be numeric, if matching mode is selected, and will be converted to lowercase.';
-$string['resp_string_case'] = 'STRING (CASE SENSITIVE): A string, which may be numeric, if matching mode is selected.';
+$string['resp_string'] = 'STRING: A string, which may be numeric, if matching mode is selected.';
 $string['resp_numeric'] = 'DECIMAL: A base-ten number, in any format recognized by PHP.';
 $string['resp_hexadecimal'] = 'HEXADECIMAL: A hexadecimal integer, which will be converted to base-10 before checking.';
 $string['resp_binary'] = 'BINARY: A binary number, which will be converted to base-10 before checking.';

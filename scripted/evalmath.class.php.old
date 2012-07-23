@@ -18,6 +18,7 @@ with some modifications by skodak
 ================================================================================
 */
 
+
 //Core constructs for EvalMath
 define('EVALMATH_IDENTIFIER', '[A-Za-z][A-Za-z0-9_\[\]\.\:]*');
 
@@ -93,10 +94,6 @@ class MathScript
      */
     public $suppress_errors = false;
 
-    /**
-     * If true, errors will be printed directly to the PHP output, no matter the value of surpress errors.
-     */
-    public $debug_show_errors = false;
 
     /**
      * Contains a string description of the most recently encountered error, or null if no error has been encountered.
@@ -109,7 +106,7 @@ class MathScript
      *
      * @var array
      */
-    public $vars = array(); // variables (and constants)
+    private $vars = array(); // variables (and constants)
 
     /**
      * User functions defined at runtime.
@@ -221,7 +218,6 @@ class MathScript
             //if we failed to parse the infix expression, return false
             if ($stack === false) 
                     return false;
-
             //finally, store the function definition
             $this->user_functions[$function_name] = array(EVALMATH_ARGUMENTS => $args, EVALMATH_FUNCTION_BODY=> $stack);
 
@@ -268,7 +264,7 @@ class MathScript
     {
         //and start a new array, which will store any errors which occur during script execution
         $errors = array();
-
+        
         //split the script into "lines" by semicolon
         $script_lines = self::split_into_statements($math_script); //explode(';', $math_script);
 
@@ -293,7 +289,7 @@ class MathScript
                 continue;
             
             //strip newlines, tabs and leading/trailing spces, as they're meaningless
-            #$line = trim(str_replace(array("\n", "\t"), ' ', $line));
+            $line = trim(str_replace(array("\n", "\t"), ' ', $line));
             
             //evaluate the given line
             $this->evaluate($line);
@@ -337,7 +333,7 @@ class MathScript
         $suffix = '';
 
         //determine if the given statement is a TCL-like function call
-        $tcl_call = preg_match('#^(\$?'.EVALMATH_IDENTIFIER.')\s+(.+)*$#ss', $expr, $matches) && $allow_tcl_calls;
+        $tcl_call = preg_match('#^(\$?'.EVALMATH_IDENTIFIER.')\s+(.+)*$#', $expr, $matches) && $allow_tcl_calls;
 
         //if the expression is a TCL-style function call, process it
         if($tcl_call)
@@ -555,37 +551,7 @@ class MathScript
     }
 
 
-	/**
-     * @author Logan Baron, from code contributed to PHP.net
-     */
-	private static function find_next_newline($haystack, $offset=0)
-	{
-		//start a new array of matches
-		$chr = array();
-	
-		//for each character which can be considered a newline
-		$newlines = array(PHP_EOL, "\n", "\r");
-
-		//for each possible newline
-		foreach($newlines as $needle)
-		{
-			//try to find the given newline in the string
-			$res = strpos($haystack, $needle, $offset);
-				
-			//if we found it, store its location
-			if ($res !== false) 
-				$chr[$needle] = $res;
-		}
-
-		//if we haven't found any newlines, return false
-		if(empty($chr)) 
-			return false;
-	
-		//otherwise, return the first newline encountered
-		return min($chr);
-}	 
-
-	//TODO: do this more efficiently?
+    //TODO: do this more efficiently?
     static function split_into_statements($math_script)
     {
         //start an empty array of lines
@@ -637,7 +603,7 @@ class MathScript
                 $statements[$statement] = substr($statements[$statement], 0, -1);
 
                 //skip until past the next newline
-				$i = self::find_next_newline($math_script, $i);
+                $i = strpos($math_script, PHP_EOL, $i);
 
                 //if the string contains no newlines, then the comment spans the rest of the script; break
                 if($i === false)
@@ -658,10 +624,6 @@ class MathScript
                 //and initialize the new statement to an empty string
                 $statements[$statement] = '';
             }
-
-		    //if we've found any whitespace character, replace it with a single space
-            elseif($depth == 0 && !$quotes && self::is_preprocessor_whitespace($char))
-		         $statements[$statement] .= ' ';
 
             //otherwise, add the charcter to the current statement
             else
@@ -736,7 +698,7 @@ class MathScript
      * @param mixed $expr 
      * @return void
      */
-    public function nfx($expr)
+    protected function nfx($expr)
     {
         return $this->infix_to_postfix($expr);
     }
@@ -827,7 +789,7 @@ class MathScript
             //if we were expecting an operator, and recieved an expresison
             elseif ($ex && $expecting_op)
             {
-                return $this->trigger('expected operand, got '.$expr[$index].'!', $expr);
+                return $this->trigger('expected operand, got '.$expr[$index].'!');
             } 
 
             //if we have an operator (and are expecting one), push it onto the stack
@@ -1167,8 +1129,10 @@ class MathScript
            
 
             //skip whitespace in blocks; this speeds up execution
-            while (self::is_preprocessor_whitespace(substr($expr, $index, 1)))
+            while (substr($expr, $index, 1) == ' ') 
+            {
                 $index++;
+            }
 
         }
 
@@ -1401,21 +1365,17 @@ class MathScript
     }
 
     // trigger an error, but nicely, if need be
-    function trigger($msg, $line = '') 
+    function trigger($msg) 
     {
         ///XXX: TODO: exception?
         //store the last error message
         $this->last_error = $msg;
 
-        //print error messages directly to the PHP output if debug show errors is on
-        if($this->debug_show_errors)
-            echo '<b>ERROR:</b>&nbsp; '.$msg.' ('.$line.')</br>';
- 
         //if surpress_errors is off, throw the warning
         if (!$this->suppress_errors) 
             trigger_error($msg, E_USER_WARNING);
 
-       //return false, indicating failure
+        //return false, indicating failure
         return false;
     }
 }
@@ -1653,7 +1613,7 @@ class mathscript_operators
 
     public static function divide($self, $dividend, $divisor)
     {
-        return floatval($dividend) / floatval($divisor);
+        return intval($dividend) / intval($divisor);
     }
 
     public static function power($self, $base, $exponent)

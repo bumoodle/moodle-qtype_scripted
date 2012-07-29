@@ -76,4 +76,29 @@ class mathscript_control
         }
     }
 
+    /**
+     * A function which acts like a switch statement.
+     */
+    public static function _switch()
+    {
+        //get the argument list, and extract $self
+        $args = func_get_args();
+        $self = array_shift($args);
+
+        //get the item we're comparing to
+        $comparison_base = array_shift($args);
+
+        //split the arguments into two separate lists
+        $count = count($args);
+        for($i = 0; $i + 1 < $count; $i += 2)
+        {
+            //if the condition evalutes to true, run the body code
+            if($self->evaluate($args[$i]) == $comparison_base)
+            {
+                //run the associated code
+                $self->evaluate_script($args[$i + 1]);
+            }
+        }
+    }
+
 }

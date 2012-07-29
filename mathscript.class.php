@@ -18,12 +18,12 @@ with some modifications by skodak
 ================================================================================
 */
 
-
 //Core constructs for EvalMath
 define('EVALMATH_IDENTIFIER', '[A-Za-z][A-Za-z0-9_\[\]\.\:]*');
 
-define('EVALMATH_STRING_ASSIGNMENT', '/^\s*('.EVALMATH_IDENTIFIER.')\s*=\s*"([^"]+)"$/');
+//define('EVALMATH_STRING_ASSIGNMENT', '/^\s*('.EVALMATH_IDENTIFIER.')\s*=\s*"([^"]+)"$/');
 define('EVALMATH_VAR_ASSIGNMENT', '/^\s*('.EVALMATH_IDENTIFIER.')\s*=\s*([^=].+)$/');
+define('EVALMATH_VAR_OPERATION_ASSIGNMENT', '/^\s*('.EVALMATH_IDENTIFIER.')\s*(\+|\-|\*|\/|\||&|%)=\s*([^=].+)$/');
 define('EVALMATH_FUNCTION_DEF', '/^\s*('.EVALMATH_IDENTIFIER.')\s*\(\s*('.EVALMATH_IDENTIFIER.'(?:\s*,\s*'.EVALMATH_IDENTIFIER.')*)\s*\)\s*=\s*(.+)$/');
 define('EVALMATH_LEGAL_CHARS', '/[^\w\s+*^\/()\.,-"]/');
 define('EVALMATH_FUNCTION_CLOSE', '/^('.EVALMATH_IDENTIFIER.')\($/');
@@ -31,13 +31,16 @@ define('EVALMATH_FUNCTION_CLOSE', '/^('.EVALMATH_IDENTIFIER.')\($/');
 //TODO: switch " for '
 define('EVALMATH_QUOTED_STRING', '/"((?:[^"]|\\\\.)*)"/');
 
-
 //array indicies (unchanged for backwards compatibility)
 define('EVALMATH_FUNCTION_NAME',  'fnn');
 define('EVALMATH_ARGUMENT_COUNT', 'argcount');
 define('EVALMATH_FUNCTION_TOKEN', 'fn'); 
 define('EVALMATH_ARGUMENTS', 'args');
 define('EVALMATH_FUNCTION_BODY', 'func');
+
+//"pass by name" for literals
+define('EVALMATH_TYPE_LITERAL', null);
+define('EVALMATH_TYPE_RESULT', null);
 
 //DEBUG
 //error_reporting(E_ALL);
@@ -52,33 +55,35 @@ class MathScript
     static $operators =  array
         (
             //basic arithmetic
-            '+' => array ('right-associative' => false, 'precedence' => 1, 'arity' => 2, 'handler' => array('mathscript_operators', 'add')),
-            '-' => array ('right-associative' => false, 'precedence' => 1, 'arity' => 2, 'handler' => array('mathscript_operators', 'subtract')),
-            '*' => array ('right-associative' => false, 'precedence' => 2, 'arity' => 2, 'handler' => array('mathscript_operators', 'multiply')),
-            '/' => array ('right-associative' => false, 'precedence' => 2, 'arity' => 2, 'handler' => array('mathscript_operators', 'divide')),
-            '^' => array ('right-associative' => true,  'precedence' => 3, 'arity' => 2, 'handler' => array('mathscript_operators', 'power')),
-            '_' => array ('right-associative' => false, 'precedence' => 2, 'arity' => 1, 'handler' => array('mathscript_operators', 'inverse')),
-            '%' => array ('right-associative' => false, 'precedence' => 2, 'arity' => 2, 'handler' => array('mathscript_operators', 'modulus')),
-
+            '+' => array ('right-associative' => false, 'precedence' => 1, 'arity' => 2,  'by_reference' => false, 'handler' => array('mathscript_operators', 'add')),
+            '-' => array ('right-associative' => false, 'precedence' => 1, 'arity' => 2,  'by_reference' => false, 'handler' => array('mathscript_operators', 'subtract')),
+            '*' => array ('right-associative' => false, 'precedence' => 2, 'arity' => 2,  'by_reference' => false, 'handler' => array('mathscript_operators', 'multiply')),
+            '/' => array ('right-associative' => false, 'precedence' => 2, 'arity' => 2,  'by_reference' => false, 'handler' => array('mathscript_operators', 'divide')),
+            '^' => array ('right-associative' => true,  'precedence' => 3, 'arity' => 2,  'by_reference' => false, 'handler' => array('mathscript_operators', 'power')),
+            '_' => array ('right-associative' => false, 'precedence' => 2, 'arity' => 1,  'by_reference' => false, 'handler' => array('mathscript_operators', 'inverse')),
+            '%' => array ('right-associative' => false, 'precedence' => 2, 'arity' => 2,  'by_reference' => false, 'handler' => array('mathscript_operators', 'modulus')),
+            '++' => array ('right-associative' => false, 'precedence' => 5, 'arity' => 1, 'by_reference' => true,  'handler' => array('mathscript_operators', 'increment')),
+            '--' => array ('right-associative' => false, 'precedence' => 5, 'arity' => 1, 'by_reference' => true,  'handler' => array('mathscript_operators', 'decrement')),
+           
             //boolean and bitwise logic
-            '&' => array ('right-associative' => false, 'precedence' => 4, 'arity' => 2, 'handler' => array('mathscript_operators', 'bitwise_and')),
-            '|' => array ('right-associative' => false, 'precedence' => 2, 'arity' => 2, 'handler' => array('mathscript_operators', 'bitwise_or')),
-            '!' => array ('right-associative' => true , 'precedence' => 2, 'arity' => 1, 'handler' => array('mathscript_operators', '_not')),
-            '~' => array ('right-associative' => true , 'precedence' => 4, 'arity' => 1, 'handler' => array('mathscript_operators', 'bitwise_not')),
-            '^^' => array ('right-associative' => false, 'precedence' => 2, 'arity' => 2, 'handler' => array('mathscript_operators', 'bitwise_xor')),
-            '&&' => array ('right-associative' => false, 'precedence' => 0, 'arity' => 2, 'handler' => array('mathscript_operators', '_and')),
-            '||' => array ('right-associative' => false, 'precedence' => 0, 'arity' => 2, 'handler' => array('mathscript_operators', '_or')),
+            '&' => array ('right-associative' => false, 'precedence' => 4, 'arity' => 2,  'by_reference' => false, 'handler' => array('mathscript_operators', 'bitwise_and')),
+            '|' => array ('right-associative' => false, 'precedence' => 2, 'arity' => 2,  'by_reference' => false, 'handler' => array('mathscript_operators', 'bitwise_or')),
+            '!' => array ('right-associative' => true , 'precedence' => 2, 'arity' => 1,  'by_reference' => false, 'handler' => array('mathscript_operators', '_not')),
+            '~' => array ('right-associative' => true , 'precedence' => 4, 'arity' => 1,  'by_reference' => false, 'handler' => array('mathscript_operators', 'bitwise_not')),
+            '^^' => array ('right-associative' => false, 'precedence' => 2, 'arity' => 2, 'by_reference' => false, 'handler' => array('mathscript_operators', 'bitwise_xor')),
+            '&&' => array ('right-associative' => false, 'precedence' => 0, 'arity' => 2, 'by_reference' => false, 'handler' => array('mathscript_operators', '_and')),
+            '||' => array ('right-associative' => false, 'precedence' => 0, 'arity' => 2, 'by_reference' => false, 'handler' => array('mathscript_operators', '_or')),
 
             //comparison operators
-            '>' => array ('right-associative' => false, 'precedence' => 0, 'arity' => 2, 'handler' => array('mathscript_operators', 'greater_than')),
-            '<' => array ('right-associative' => false, 'precedence' => 0, 'arity' => 2, 'handler' => array('mathscript_operators', 'less_than')),
-            '==' => array ('right-associative' => false, 'precedence' => 0, 'arity' => 2, 'handler' => array('mathscript_operators', 'equals')),
-            '!=' => array ('right-associative' => false, 'precedence' => 0, 'arity' => 2, 'handler' => array('mathscript_operators', 'not_equals')),
-            '>=' => array ('right-associative' => false, 'precedence' => 0, 'arity' => 2, 'handler' => array('mathscript_operators', 'greater_equal')),
-            '<=' => array ('right-associative' => false, 'precedence' => 0, 'arity' => 2, 'handler' => array('mathscript_operators', 'less_equal')),
+            '>' => array ('right-associative' => false, 'precedence' => 0, 'arity' => 2,  'by_reference' => false, 'handler' => array('mathscript_operators', 'greater_than')),
+            '<' => array ('right-associative' => false, 'precedence' => 0, 'arity' => 2,  'by_reference' => false, 'handler' => array('mathscript_operators', 'less_than')),
+            '==' => array ('right-associative' => false, 'precedence' => 0, 'arity' => 2, 'by_reference' => false, 'handler' => array('mathscript_operators', 'equals')),
+            '!=' => array ('right-associative' => false, 'precedence' => 0, 'arity' => 2, 'by_reference' => false, 'handler' => array('mathscript_operators', 'not_equals')),
+            '>=' => array ('right-associative' => false, 'precedence' => 0, 'arity' => 2, 'by_reference' => false, 'handler' => array('mathscript_operators', 'greater_equal')),
+            '<=' => array ('right-associative' => false, 'precedence' => 0, 'arity' => 2, 'by_reference' => false, 'handler' => array('mathscript_operators', 'less_equal')),
 
             //string concatination
-            ':' => array ('right-associative' => false, 'precedence' => 2, 'arity' => 2, 'handler' => array('mathscript_operators', 'concat')),
+            ':' => array ('right-associative' => false, 'precedence' => 2, 'arity' => 2, 'by_reference' => false, 'handler' => array('mathscript_operators', 'concat')),
         );
 
 
@@ -110,7 +115,12 @@ class MathScript
      *
      * @var array
      */
-    private $vars = array(); // variables (and constants)
+    public $vars = array(); // variables (and constants)
+
+    /**
+     * If the current statement is being used as an assignment, this is the variable that will be assigned to.
+     */
+    public $assignment_target = null;
 
     /**
      * User functions defined at runtime.
@@ -168,6 +178,9 @@ class MathScript
         //clear the record of the last error
         $this->last_error = null;
 
+        //clear the current assignment record
+        $this->assignment_target = null;
+
         //store the initial execution context
         $initial_vars = $this->vars;
 
@@ -188,6 +201,9 @@ class MathScript
         //if the given expression is a variable assignment:
         if (preg_match(EVALMATH_VAR_ASSIGNMENT, $expr, $matches)) 
         {
+            //set the assignment target
+            $this->assignment_target = $matches[1];
+
             //parse the data to be assigned
             $to_assign = $this->evaluate_infix($matches[2]);
 
@@ -196,10 +212,37 @@ class MathScript
                 return false; 
 
             //otherwise, set the relevant variable
-            $this->vars[$matches[1]] = $to_assign;
+            $this->vars[$this->assignment_target] = $to_assign;
 
             //and return the value that resulted from the assignment
-            $retval =  $to_assign; // and return the resulting value
+            $retval = $to_assign; // and return the resulting value
+        }
+
+        elseif(preg_match(EVALMATH_VAR_OPERATION_ASSIGNMENT, $expr, $matches))
+        {
+            //get the initial value of the left-hand-side of the expression
+            $lhs = $this->dereference($matches[1]);
+
+            //if it does not exist, fail
+            if($lhs === null)
+                return false;
+
+            //compute the RHS of the expression, which will be added to the LHS
+            $rhs = $this->evaluate_infix($matches[3]);
+
+            //if we couldn't compute the RHS, fail
+            if($rhs === false)
+                return false;
+
+            //call the correct opreator for this block
+            $handler = self::$operators[$matches[2]]['handler'];
+            $result = call_user_func($handler, $this, $lhs, $rhs);
+
+            //and store the result
+            $this->vars[$matches[1]] = $result;
+
+            //and return the value that resulted from the assignment
+            $retval = $result;
         }
 
         //handle function definitions 
@@ -238,7 +281,7 @@ class MathScript
                 return 0;
 
             //evaluate the given function, and get the return value
-            $retval =  $this->evaluate_infix($expr); 
+            $retval = $this->evaluate_infix($expr); 
 
         }
 
@@ -693,6 +736,20 @@ class MathScript
     }
 
     /**
+     *  Gets a variable, or triggers an error if the variable does not exist.
+     */
+    public function & dereference($name)
+    {
+        //if the variable exists, return it
+        if(isset($this->vars[$name]))
+            return $this->vars[$name]; 
+
+        //otherwise, trigger an error and retrun null
+        $this->trigger_undefined_variable($name);
+        return null;
+    }
+
+    /**
      * Gets or sets the internal list of function definitions.
      * 
      * @param mixed $newvalue 
@@ -773,8 +830,8 @@ class MathScript
         //    return $this->trigger("illegal character '{$matches[0]}'");
 
         //if our expression is terminated by an operator, throw an exception
-        if(array_key_exists(substr($expr, -1, 1), self::$operators))
-            return $this->trigger('no operand for '.substr($expr, -1));
+        //if(array_key_exists(substr($expr, -1, 1), self::$operators))
+        //    return $this->trigger('no operand for '.substr($expr, -1));
 
         //loop until we break
         $expr_len = strlen($expr);
@@ -1254,14 +1311,29 @@ class MathScript
                     for($i = 0; $i < $arg_count; ++$i)
                     {
                         //pop the top element off the stack
-                        $top = $stack->pop();
+                        list($reference, $top) = $stack->pop();
 
-                        //if we've run out of arguments, trigger an error
-                        if(is_null($top))
-                            return $this->trigger('internal error: not enough arguments were provided for '.$function_name.' and internal methods didn\'t catch it.');
-
+                        //if this function expects pass-by-refernce, the pass it a reference to the object
+                        if($this->extensions->function_argument_by_reference($function_name, $i))
+                        {
+                            //Note the lack of a check for existence. This allows us to _create_ variables by reference.
+                                    
+                            //if our reference was supplied as a literal, use it as a pointer
+                            if(is_null($reference))
+                                $args[$i] =& $top;
+                            else
+                                $args[$i] =& $reference;
+                        }
                         //add the new element to the arguments array
-                        $args[$i] = $top;
+                        else
+                        {
+                            //if we're trying to operate on an undefined variable, raise an error
+                            if(is_null($top))
+                                return $this->trigger_undefined_variable($reference);
+
+                            //otherwise, pass in the variable
+                            $args[$i] = $top;
+                        }
 
                     }
 
@@ -1274,9 +1346,7 @@ class MathScript
                         return $this->trigger('internal error in function '.$function_name);
 
                     //push the result onto the stack
-                    $stack->push($result);
-
-
+                    $stack->push(array(EVALMATH_TYPE_RESULT, $result));
                
                 }
                 //otherwise if this is a user (runtime) defined function, handle it 
@@ -1292,10 +1362,10 @@ class MathScript
                     for ($i = $expected_args - 1; $i >= 0; $i--) 
                     {
                         //pull a single argument from the top of the stack
-                        $top = $stack->pop();
+                        list($reference, $top) = $stack->pop();
 
                         if(is_null($top))
-                            return $this->trigger('internal error: didn\'t recieve the proper number of funciton arguments after parsing');
+                            return $this->trigger_undefined_variable($reference);
 
                         //get the name for the current argument
                         $arg_name = $this->user_functions[$function_name][EVALMATH_ARGUMENTS][$i];
@@ -1317,20 +1387,22 @@ class MathScript
                     $this->vars = $initial_vars;
 
                     //and push the result onto the stack
-                    $stack->push($result);
+                    $stack->push(array(EVALMATH_TYPE_RESULT, $result));
                 }
             }
 
             //handle binary operators
             elseif(!is_array($token) && array_key_exists($token, self::$operators) && self::$operators[$token]['arity'] == 2)
             {
-                //pop two operators off the stack
-                $op2 = $stack->pop();
-                $op1 = $stack->pop();
+                //pop two operands off the stack
+                list($ref2, $op2) = $stack->pop();
+                list($ref1, $op1) = $stack->pop();
 
                 //if we didn't get an operand, throw an error
-                if(is_null($op1) || is_null($op2))
-                    return $this->trigger('internal error: not enough operands were passed for the '.$op.' operator');
+                if(is_null($op1))
+                    return $this->trigger_undefined_variable($ref1);
+                if(is_null($op2))
+                    return $this->trigger_undefined_variable($ref2);
 
                 //get the handler for the given operator
                 $handler = self::$operators[$token]['handler'];
@@ -1339,57 +1411,64 @@ class MathScript
                 $result = call_user_func($handler, $this, $op1, $op2);
 
                 //and push the result onto the stack
-                $stack->push($result);
+                $stack->push(array(EVALMATH_TYPE_RESULT, $result));
             }
+            //handle unary operators
             elseif(!is_array($token) && array_key_exists($token, self::$operators) && self::$operators[$token]['arity'] == 1)
             {
                 //pop the operand off the stack
-                $op = $stack->pop();
+                list($ref, $op) = $stack->pop();
 
-                //if we didn't get an operand, throw an error
-                if(is_null($op))
-                    return $this->trigger('internal error: no operands were passed for the '.$op.' operator');
                 //get the handler for the given operator
-
                 $handler = self::$operators[$token]['handler'];
 
+                //if the operator is designed for pass-by-reference
+                if(self::$operators[$token]['by_reference'])
+                {
+                    //get a reference to the operand
+                    $arg =& $ref;
+                }
+                else
+                {
+                    //if we didn't get an operand, throw an error
+                    if(is_null($op))
+                        return $this->trigger_undefined_variable($ref);
+
+                    //set the argument equal to the operand
+                    $arg = $op;
+                }
+
                 //call the given handler to perform the operation
-                $result = call_user_func($handler, $this, $op);
+                $result = call_user_func($handler, $this, $arg);
 
                 //and push the result onto the stack
-                $stack->push($result);
+                $stack->push(array(EVALMATH_TYPE_RESULT, $result));
             }
-            /* 
-            //handle unary operators XXX: abstract me to the same generic operator function as above 
-            elseif ($token == "_")
-            {
-                $stack->push(-1*$stack->pop());
-            }
-             */
-            //handle variables and numbers 
+ 
+            //handle variables and literals
             else 
             {
                 //if the token is an array with a "string" key, it's a string- push the core string to the stack, directly
                 if(is_array($token) && array_key_exists('string', $token))
-                    $stack->push($token['string']);
+                    $stack->push(array(EVALMATH_TYPE_LITERAL, $token['string']));
 
                 //if we've recieved a numeric token, push it directly onto the stack
                 elseif (is_numeric($token)) 
-                    $stack->push($token);
+                    $stack->push(array(EVALMATH_TYPE_LITERAL, $token));
 
                 //if we've recieved a local variable, push its value onto the stack
                 elseif (array_key_exists($token, $vars)) 
-                    $stack->push($vars[$token]);
+                    $stack->push(array($token, $vars[$token]));
 
                 //if we've recieved a global variable, push its value onto the stack
                 elseif (array_key_exists($token, $this->vars)) 
-                    $stack->push($this->vars[$token]);
+                    $stack->push(array($token, $this->vars[$token]));
 
-                
-
-                //otherwise, we have a variable of unknown value
+                //otherwise, we have a variable of unknown value;
+                //we'll push it onto the array as having the value null
                 else 
-                    return $this->trigger("undefined variable '$token'");
+                    $stack->push(array($token, null));
+                    //return $this->trigger("undefined variable '$token'");
             }
         }
 
@@ -1398,7 +1477,14 @@ class MathScript
             return $this->trigger('internal error: '.$stack->count.' values were left on the stack after execution.');
 
         //return the final result
-        return $stack->pop();
+        list($reference, $result) = $stack->pop();
+
+        return $result;
+    }
+
+    function trigger_undefined_variable($varname, $line='')
+    {
+        return $this->trigger('tried to reference the value of '.$varname. ' before it was assigned a value', $line);
     }
 
     // trigger an error, but nicely, if need be
@@ -1558,6 +1644,22 @@ class mathscript_extension_manager
         return array_key_exists($function_name, $this->function_cache) || array_key_exists('_' . $function_name, $this->function_cache);
     }
 
+    /**
+     * Returns true if the given argument _position_ should be passed by reference ("pass by name").
+     * 
+     * @param string $function_name    The name of the function being evaluated.
+     * @param int    $position         The integer posistion of the argument.
+     * @return bool                    True iff the argument should be passed by reference.
+     */
+    public function function_argument_by_reference($function_name, $position)
+    {
+        //get the function's metadata
+        $function = $this->get_cached_function($function_name);
+
+        //return true iff the given "reference position" flag is set
+        return (isset($function->reference_positions[$position]) && $function->reference_positions[$position]);
+    }
+
 
     /**
      * Returns true iff the given function will accept the given amount of arguments. 
@@ -1609,17 +1711,40 @@ class mathscript_extension_manager
 
             //if the function takes no arguments, assume it's variadic
             if($max_args === 0 && $min_args === 0)
+            {
                 $num_args = array(-1);
-        
-            //otherwise, assume it may have any amount of arguments between the minimum and maximum, plus the first argument, $self
+                $positions_by_reference = array();
+            } 
             else
+            {
+                //otherwise, assume it may have any amount of arguments between the minimum and maximum, plus the first argument, $self
                 $num_args = range($min_args - 1, $max_args - 1);
+
+                //Parse each of the arguments for the function; this will allow us to use PHP decorations (like by-reference)
+                //to more easily construct mathscript modules.
+                //
+                //This isn't the cleanest way to do this, but as PHP lacks decorators... this is probably the easiest on the developer.
+                $params = $method->getParameters();
+
+                //Positions which are marked as "pass by reference" are noted specially, as this has a special meaning in mathscript.
+                //("Pass by name.")
+                $positions_by_reference = array();
+
+                //Find any positional argument which is passed by reference.
+                //Note that we subtract one; as the first argument should always be $self.
+                foreach($params as $position => $param)
+                    if($param->isPassedByReference())    
+                        $positions_by_reference[$position - 1] = true;
+
+            }
 
             //add the function to our function cache
             $this->function_cache[$function_name] = array
                 (
                     'argcount' => $num_args,
-                    'signature' => array($classname, $function_name) 
+                    'signature' => array($classname, $function_name),
+                    'reference_positions' => $positions_by_reference,
+                    'returns_by_reference' => $method->returnsReference()
                 );
         }
     }
@@ -1758,6 +1883,19 @@ class mathscript_operators
     {
         return $a.$b;
     }
+
+    //increment/decrement
+    public static function increment($self, &$a)
+    {
+        $self->vars[$a] = $self->dereference($a) + 1;   
+    }
+
+    public static function decrement($self, &$a)
+    {
+        $self->vars[$a] = $self->dereference($a) - 1;
+    }
+
+    //public static function 
 
 
 }

@@ -24,6 +24,11 @@ class mathscript_randomization
             return mt_rand($a, $b);
     }
 
+    public static function boolean($self)
+    {
+        return mt_rand(0, 1); 
+    }
+
     public static function oneOf()
     {
         //get the argument list, and extract $self

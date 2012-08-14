@@ -428,7 +428,7 @@ class qtype_scripted_question extends question_graded_by_strategy implements que
      * Inserts the varaibles for the given question text, then calls the basic formatter.
      * 
      */
-	public function format_questiontext(question_attempt $qa)
+    public function format_questiontext($qa)
 	{
 		//get a list of varaibles created by the initialization MathScript 
 		$vars = self::safe_unserialize($qa->get_last_qt_var('_vars'));

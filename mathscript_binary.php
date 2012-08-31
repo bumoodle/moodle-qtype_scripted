@@ -1,4 +1,4 @@
-<?
+<?php
 
 class mathscript_binary
 {

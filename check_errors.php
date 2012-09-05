@@ -14,25 +14,26 @@ $start = getTime();
 //don't display PHP errors just in case
 ini_set('display_errors', 1);
 
-if(empty($_POST['script']))
+if(empty($_POST['script'])) {
 	die();
+}
 
 //include the math evaluator 
-require_once '../../../lib/evalmath/evalmath.class.php';
-require_once '../../../lib/evalmath/mathscript_randomization.php';
-require_once '../../../lib/evalmath/mathscript_binary.php';
-require_once '../../../lib/evalmath/mathscript_control.php';
-require_once '../../../lib/evalmath/mathscript_legacy.php';
-require_once '../../../lib/evalmath/mathscript_debug.php';
-require_once '../../../lib/evalmath/mathscript_string.php';
-require_once '../../../lib/evalmath/mathscript_logic.php';
-require_once '../../../lib/evalmath/mathscript_array.php';
+require_once './mathscript/mathscript.class.php';
+require_once './mathscript/mathscript_randomization.php';
+require_once './mathscript/mathscript_binary.php';
+require_once './mathscript/mathscript_control.php';
+require_once './mathscript/mathscript_legacy.php';
+require_once './mathscript/mathscript_debug.php';
+require_once './mathscript/mathscript_string.php';
+require_once './mathscript/mathscript_logic.php';
+require_once './mathscript/mathscript_array.php';
 
 //get the script to execute
 $script = $_POST['script'];
 
 //create a new math evaluator object
-$m = new EvalMath(array('spreadsheet', 'basicmath', 'randomization', 'binary', 'control', 'legacy', 'debug', 'string', 'logic', 'array'));
+$m = new MathScript(array('spreadsheet', 'basicmath', 'randomization', 'binary', 'control', 'legacy', 'debug', 'string', 'logic', 'array'));
 $m->suppress_errors = true;
 
 //evaluate the script passed on post

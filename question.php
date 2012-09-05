@@ -2,16 +2,15 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-require_once($CFG->dirroot.'/lib/evalmath/evalmath.class.php');
-require_once($CFG->dirroot.'/lib/evalmath/mathscript_randomization.php');
-require_once($CFG->dirroot.'/lib/evalmath/mathscript_binary.php');
-require_once($CFG->dirroot.'/lib/evalmath/mathscript_control.php');
-require_once($CFG->dirroot.'/lib/evalmath/mathscript_legacy.php');
-require_once($CFG->dirroot.'/lib/evalmath/mathscript_debug.php');
-require_once($CFG->dirroot.'/lib/evalmath/mathscript_string.php');
-require_once($CFG->dirroot.'/lib/evalmath/mathscript_logic.php');
-require_once($CFG->dirroot.'/lib/evalmath/mathscript_array.php');
-
+require_once($CFG->dirroot.'/question/type/scripted/mathscript/mathscript.class.php');
+require_once($CFG->dirroot.'/question/type/scripted/mathscript/mathscript_randomization.php');
+require_once($CFG->dirroot.'/question/type/scripted/mathscript/mathscript_binary.php');
+require_once($CFG->dirroot.'/question/type/scripted/mathscript/mathscript_control.php');
+require_once($CFG->dirroot.'/question/type/scripted/mathscript/mathscript_legacy.php');
+require_once($CFG->dirroot.'/question/type/scripted/mathscript/mathscript_debug.php');
+require_once($CFG->dirroot.'/question/type/scripted/mathscript/mathscript_string.php');
+require_once($CFG->dirroot.'/question/type/scripted/mathscript/mathscript_logic.php');
+require_once($CFG->dirroot.'/question/type/scripted/mathscript/mathscript_array.php');
 
 class qtype_scripted_response_mode
 {
@@ -162,7 +161,7 @@ class qtype_scripted_question extends question_graded_by_strategy implements que
     	$step->set_qt_var('_vars', self::safe_serialize($vars));
     	$step->set_qt_var('_funcs', self::safe_serialize($funcs));
     	
-    	//store a local copy of the EvalMath state
+    	//store a local copy of the MathScript state
     	$this->vars = $vars;
         $this->funcs = $funcs;
     }
@@ -177,8 +176,8 @@ class qtype_scripted_question extends question_graded_by_strategy implements que
      */
     static function execute_script($code, $question_text = false, $vars = false, $functions = false)
     {
-     	//create a EvalMath mathematics evaulator
-        $m = new EvalMath(self::$extensions_allowed);
+     	//create a MathScript mathematics evaulator
+        $m = new MathScript(self::$extensions_allowed);
     	$m->suppress_errors = true;
 
         //if question text was provided, initialize all contained variables to zero
@@ -324,7 +323,7 @@ class qtype_scripted_question extends question_graded_by_strategy implements que
     	$value = $this->parse_response($response);
 	
     	//create a new math evaluation object
-        $m = new EvalMath(self::$extensions_allowed);
+        $m = new MathScript(self::$extensions_allowed);
     	$m->suppress_errors = true;
 
     	//define all known functions and variables (defined in the init script)
@@ -425,7 +424,7 @@ class qtype_scripted_question extends question_graded_by_strategy implements que
      * Inserts the varaibles for the given question text, then calls the basic formatter.
      * 
      */
-	public function format_questiontext(question_attempt $qa)
+    public function format_questiontext($qa)
 	{
 		//get a list of varaibles created by the initialization MathScript 
 		$vars = self::safe_unserialize($qa->get_last_qt_var('_vars'));
@@ -529,7 +528,7 @@ class qtype_scripted_question extends question_graded_by_strategy implements que
 	public function get_correct_response()
 	{
 		//create a new math evaluation object:
-        $m = new EvalMath(self::$extensions_allowed);
+        $m = new MathScript(self::$extensions_allowed);
 		$m->suppress_errors = true;
 		 
 		//define all known functions and variables (defined in the init script)
@@ -639,8 +638,8 @@ class qtype_scripted_question extends question_graded_by_strategy implements que
     static function find_all_variables($text)
     {
     	//extract all items of the form {[A-Za-z]+}, which are our variables
-        $variables = preg_match_all("|\{'.EVALMATH_IDENTIFIER.'\}|", $text, $matches, PREG_SET_ORDER);
-    
+        $variables = preg_match_all('|\{('.MATHSCRIPT_IDENTIFIER.')\}|', $text, $matches, PREG_SET_ORDER);
+
     	//return the first element of each match- the variable name without the curly braces
     	return array_map(function($arr) { return $arr[1]; },  $matches);
     

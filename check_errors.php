@@ -30,7 +30,7 @@ require_once './mathscript/mathscript_string.php';
 $script = $_POST['script'];
 
 //create a new math evaluator object
-$m = new EvalMath(array('spreadsheet', 'basicmath', 'randomization', 'binary', 'control', 'legacy', 'debug', 'string'));
+$m = new MathScript(array('spreadsheet', 'basicmath', 'randomization', 'binary', 'control', 'legacy', 'debug', 'string'));
 $m->suppress_errors = true;
 
 //evaluate the script passed on post

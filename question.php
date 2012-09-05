@@ -160,7 +160,7 @@ class qtype_scripted_question extends question_graded_by_strategy implements que
     	$step->set_qt_var('_vars', self::safe_serialize($vars));
     	$step->set_qt_var('_funcs', self::safe_serialize($funcs));
     	
-    	//store a local copy of the EvalMath state
+    	//store a local copy of the MathScript state
     	$this->vars = $vars;
         $this->funcs = $funcs;
     }
@@ -175,8 +175,8 @@ class qtype_scripted_question extends question_graded_by_strategy implements que
      */
     static function execute_script($code, $question_text = false, $vars = false, $functions = false)
     {
-     	//create a EvalMath mathematics evaulator
-        $m = new EvalMath(self::$extensions_allowed);
+     	//create a MathScript mathematics evaulator
+        $m = new MathScript(self::$extensions_allowed);
     	$m->suppress_errors = true;
 
         //if question text was provided, initialize all contained variables to zero
@@ -323,7 +323,7 @@ class qtype_scripted_question extends question_graded_by_strategy implements que
     
 	
     	//create a new math evaluation object
-        $m = new EvalMath(self::$extensions_allowed);
+        $m = new MathScript(self::$extensions_allowed);
     	$m->suppress_errors = true;
     	
     	//define all known functions and variables (defined in the init script)
@@ -528,7 +528,7 @@ class qtype_scripted_question extends question_graded_by_strategy implements que
 	public function get_correct_response()
 	{
 		//create a new math evaluation object:
-        $m = new EvalMath(self::$extensions_allowed);
+        $m = new MathScript(self::$extensions_allowed);
 		$m->suppress_errors = true;
 		 
 		//define all known functions and variables (defined in the init script)
@@ -638,7 +638,7 @@ class qtype_scripted_question extends question_graded_by_strategy implements que
     static function find_all_variables($text)
     {
     	//extract all items of the form {[A-Za-z]+}, which are our variables
-        $variables = preg_match_all("|\{'.EVALMATH_IDENTIFIER.'\}|", $text, $matches, PREG_SET_ORDER);
+        $variables = preg_match_all('|\{'.MATHSCRIPT_IDENTIFIER.'\}|', $text, $matches, PREG_SET_ORDER);
     
     	//return the first element of each match- the variable name without the curly braces
     	return array_map(function($arr) { return $arr[1]; },  $matches);

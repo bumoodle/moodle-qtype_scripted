@@ -1,0 +1,6 @@
+[submodule "MathScript"]
+	path = MathScript
+	url = git@github.com:bumoodle/MathScript.git
+[submodule "mathscript"]
+	path = mathscript
+	url = git@github.com:bumoodle/MathScript.git

@@ -18,62 +18,53 @@ require_once($CFG->dirroot . '/question/type/shortanswer/edit_shortanswer_form.p
 class qtype_scripted_edit_form extends qtype_shortanswer_edit_form 
 {
 
-    /**
-     * FIXME XXX FIXME
-     * Replace all of the hardcoded HTML with $PAGE->requires references.
-     */    
-		
+	
 	/**
 	 * Static routine to insert the header code necessary start a CodeMirror instance, which should syntax highlight the initialization script.
 	 */
 	static function editor_header()
 	{
-		global $CFG;
-	
-        //add the headers required for syntax highlighting in the init script
-        //TODO: cleanup
-		return  '
-                        <script src="'.$CFG->wwwroot.'/question/type/scripted/scripts/codemirror/codemirror.js"></script>
-                        <script src="'.$CFG->wwwroot.'/question/type/scripted/scripts/codemirror/hcs08.js"></script>
-			        	<script src="'.$CFG->wwwroot.'/question/type/scripted/scripts/codemirror/calcsane.js"></script>
-						<link rel="stylesheet" href="'.$CFG->wwwroot.'/question/type/scripted/scripts/codemirror/codemirror.css">
-						<link rel="stylesheet" href="'.$CFG->wwwroot.'/question/type/scripted/scripts/codemirror/default.css">
-                ';
-	}
+		global $CFG, $PAGE;
+
+        //Load the YUI2 modules used by the dynamic error checker.
+        $PAGE->requires->yui2_lib('node');
+        $PAGE->requires->yui2_lib('connection');
+
+        //Load the stylesheets required for syntax highlighting.
+        $PAGE->requires->css('/question/type/scripted/scripts/codemirror/codemirror.css');
+        $PAGE->requires->css('/question/type/scripted/scripts/codemirror/default.css');
+
+        //And load the JS requirements.
+        $PAGE->requires->js('/question/type/scripted/scripts/codemirror/codemirror.js', true);
+        $PAGE->requires->js('/question/type/scripted/scripts/codemirror/hcs08.js', true);
+        $PAGE->requires->js('/question/type/scripted/scripts/codemirror/calcsane.js', true);
+
+        return '';
+
+    }
 	
 	/**
 	 * Static routine to start a CodeMirror instance, which should syntax highlight the initialization script.
 	 */
     static function editor_script($name, $editor_mode='text/calc-sane', $dyn_errors = true)
 	{
-		global $CFG;
+		global $CFG, $PAGE;
 
-        //XXX TODO FIXME: MASSIVE CLEANUP
-        if($dyn_errors)
-        {    
-            return  '
-                            <script src="'.$CFG->wwwroot.'/'.get_string('pluginname_link', 'qtype_scripted').'/dynerr_check.js" type="text/javascript"></script>
-                            <script type="text/javascript">
-                                var code;
-                                var checkURI = "'.$CFG->wwwroot.'/'.get_string('pluginname_link', 'qtype_scripted').'/check_errors.php";
-                                var options = { lineNumbers: true, mode: "'.$editor_mode.'", theme: "elegant", onKeyEvent: resetTimeout }
-                                
-                                    YUI().use("node", function(Y) { initscript = Y.DOM.byId("id_'.$name.'"); code = CodeMirror.fromTextArea(initscript, options); });
-                            </script>
-                                ';        
-        }
-        else
-        {
-            return '
-			        	<script type="text/javascript">
-			        		var code;
-                            var options = { lineNumbers: true, mode: "'.$editor_mode.'", theme: "elegant", onKeyEvent: resetTimeout }
-			        		
-                                YUI().use("node", function(Y) { '.$name.' = Y.DOM.byId("id_'.$name.'"); CodeMirror.fromTextArea('.$name.', options); });
-			        	</script>
-            ';        
+        $jsmodule = array(
+            'name'     => 'qtype_scripted',
+            'fullpath' => '/question/type/scripted/module.js',
+            'requires' => array('node'),
+            'strings' => array() //TODO: internationalize error checks?
+        );
 
+        //Initialize the syntax checker module.
+        if($dyn_errors) {    
+            $PAGE->requires->js_init_call('M.qtype_scripted.init_dynamic', array('id_'.$name, $editor_mode), true);
+        } else {
+            $PAGE->requires->js_init_call('M.qtype_scritped.init_static', array('id_'.$name, $editor_mode), true);
         }
+            
+        return '';
 	}
     
     /**

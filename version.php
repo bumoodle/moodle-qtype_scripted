@@ -13,8 +13,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'qtype_scripted';
-$plugin->version   = 2011102700;
+$plugin->version   = 2013020600;
+$plugin->requires  = 2012120301;
 
-$plugin->requires  = 2011102700;
-
-$plugin->maturity  = MATURITY_ALPHA;
+$plugin->maturity  = MATURITY_BETA;

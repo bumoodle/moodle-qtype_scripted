@@ -63,3 +63,10 @@ $string['eval_direct'] = 'User\'s answer must match the result of the given expr
 $string['eval_congruent'] = 'User\'s answer must be congruent to the result of the given expression.';  
 $string['eval_boolean'] = 'The given expression must evaluate to true.';
 
+$string['language'] = 'Scripting language:';
+$string['lua'] = 'Lua';
+$string['mathscript'] = 'MathScript (Deprecated)';
+
+$string['invalidlanguage'] = 'An invalid scripting language was requested.';
+$string['invalidlanguage_debug'] = 'The language {$a} wasn\'t registered as a valid scripting language.';
+

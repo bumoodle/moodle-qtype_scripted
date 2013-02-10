@@ -1,82 +1,75 @@
 <?php
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
+/**
+ * Scripted question type.
+ *
+ * @package    qtype
+ * @subpackage scripted
+ * @copyright  2013 onwards Binghamton University
+ * @author     Kyle J. Temkin <ktemkin@binghamton.edu>
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
 
 defined('MOODLE_INTERNAL') || die();
 
-require_once($CFG->dirroot.'/question/type/scripted/mathscript/mathscript.class.php');
-require_once($CFG->dirroot.'/question/type/scripted/mathscript/mathscript_randomization.php');
-require_once($CFG->dirroot.'/question/type/scripted/mathscript/mathscript_binary.php');
-require_once($CFG->dirroot.'/question/type/scripted/mathscript/mathscript_control.php');
-require_once($CFG->dirroot.'/question/type/scripted/mathscript/mathscript_legacy.php');
-require_once($CFG->dirroot.'/question/type/scripted/mathscript/mathscript_debug.php');
-require_once($CFG->dirroot.'/question/type/scripted/mathscript/mathscript_string.php');
-require_once($CFG->dirroot.'/question/type/scripted/mathscript/mathscript_logic.php');
-require_once($CFG->dirroot.'/question/type/scripted/mathscript/mathscript_array.php');
+require_once($CFG->dirroot.'/question/type/scripted/locallib.php');
 
-class qtype_scripted_response_mode
-{
-    /**
-     *  Interpret the user's response as a string, which may be numeric, if MODE_MUST_EQUAL is selected.
-     */
+define('QTYPE_SCRIPTED_VARIABLE_IDENTIFIER', '[A-Za-z][A-Za-z0-9_\[\]\.\:]*');
+
+class qtype_scripted_response_mode {
+
+    /** *  Interpret the user's response as a string, which may be numeric, if MODE_MUST_EQUAL is selected.  */
     const MODE_STRING = 0;
 
-    /**
-     *  Interpret the user's response as a _case sensitive_ string.
-     */
+    /** *  Interpret the user's response as a _case sensitive_ string.  */
     const MODE_STRING_CASE_SENSITIVE = 5;
 
-    /**
-     * Interpret the user's response as a floating point number, which is base ten.
-     */
+    /** * Interpret the user's response as a floating point number, which is base ten.  */
     const MODE_NUMERIC = 1;
 
-    /**
-     * Interpret the user's response as a binary number, which is converted to an integer before checking. 
-     */
+    /** * Interpret the user's response as a binary number, which is converted to an integer before checking.  */
     const MODE_BINARY =  2;
 
-    /**
-     * Interpret the user's response as a hexadecimal number, which is converted to an integer before checking.
-     */
+    /** * Interpret the user's response as a hexadecimal number, which is converted to an integer before checking.  */
     const MODE_HEXADECIMAL = 3;
 
-
-    /**
-     * Interpret the user's response as an octal number, which is converted to an integer before checking.
-     */
+    /** * Interpret the user's response as an octal number, which is converted to an integer before checking.  */
     const MODE_OCTAL = 4;
 }
 
-class qtype_scripted_answer_mode
-{
-	/**
-	 * True to indciate that a correct response must be equal (using PHP's ==) to the evaluated answer. 
-	 * 
-	 * @var int
-	 */
-	const MODE_MUST_EQUAL = 0;
-	
-	/**
-	* True to indciate that a correct response must be congruent (using PHP's ===) to the evaluated answer.
-	*
-	* @var int
-	*/
-	const MODE_MUST_BE_CONGRUENT = 1;
-	
-	/**
-	 * True to indicate that the evaluated answer (which will depend on the user's response) must be nonzero.
-	 * 
-	 * @var int
-	 */
-	const MODE_MUST_EVAL_TRUE = 2;
+class qtype_scripted_answer_mode {
+    /** * True to indciate that a correct response must be equal (using PHP's ==) to the evaluated answer.  */
+    const MODE_MUST_EQUAL = 0;
+    
+    /** * True to indciate that a correct response must be congruent (using PHP's ===) to the evaluated answer.  */
+    const MODE_MUST_BE_CONGRUENT = 1;
+    
+    /** * True to indicate that the evaluated answer (which will depend on the user's response) must be nonzero.  */
+    const MODE_MUST_EVAL_TRUE = 2;
 }
 
 /**
-* Defines the editing form for the scripted question type.
+* Defines a Scripted question, a variant of the short-answer question whose answers are determined programatically.
+* This is mostly intended for STEM fields, where instructors a likely to know at least a little bit of programming.
 *
 * @package    qtype
 * @subpackage scripted
-* @copyright  2011 Binghamton University
-* @author	  Kyle Temkin <ktemkin@binghamton.edu>
+* @copyright  2011, 2013 Binghamton University
+* @author     Kyle Temkin <ktemkin@binghamton.edu>
 * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
 */
 class qtype_scripted_question extends question_graded_by_strategy implements question_response_answer_comparer 
@@ -84,9 +77,9 @@ class qtype_scripted_question extends question_graded_by_strategy implements que
     /** @var int (member of answer_mode) Indicates the grading mechanism used to compare answers . */
     public $answer_mode;
     
-    /** @var string A short block of EvalScript to be executed upon the instantiation of a new question. */
+    /** @var string A short script to be executed upon the instantiation of a new question. */
     public $init_code;
-    
+
     /** @var int (member of qtype_scripted_response_mode)   A short identifer which determines how this question will be graded. */
     public $reponse_mode;
     
@@ -99,16 +92,14 @@ class qtype_scripted_question extends question_graded_by_strategy implements que
     /** @var array - an array containing the functions defined by the initialization script */
     private $funcs;
 
-    /**
-     * A list of MathScript extensions allowed.
-     */
-    static $extensions_allowed = array('spreadsheet', 'basicmath', 'randomization', 'binary', 'control', 'legacy', 'debug', 'string', 'logic', 'array');
+    /** @var string The scripting language which is used for evaluting the init script. */
+    public $language;
+
 
     /**
      * Creates a new Scripted question instance.
      */
-    public function __construct() 
-    {
+    public function __construct() {
         parent::__construct(new question_first_matching_answer_grading_strategy($this));
     }
 
@@ -116,8 +107,7 @@ class qtype_scripted_question extends question_graded_by_strategy implements que
      * Indicates the type of answer data which Moodle expects to recieve; the scripted quesiton type
      * always recieves the same, single answer.
      */
-    public function get_expected_data() 
-    {
+    public function get_expected_data() {
         return array('answer' => PARAM_RAW_TRIMMED);
     }
 
@@ -134,16 +124,12 @@ class qtype_scripted_question extends question_graded_by_strategy implements que
     * @param int $varant which variant of this question to start. Will be between
     *      1 and {@link get_num_variants()} inclusive.
     */
-    public function start_attempt(question_attempt_step $step, $variant) 
-    {
+    public function start_attempt(question_attempt_step $step, $variant) {
         //evaluate the initialization script, ensuring that all variables defined in the question text are initialized
-        list($errors, $vars, $funcs) = self::execute_script($this->init_code, $this->questiontext);
-
-        //TODO: handle errors
+        list(, $vars, $funcs) = self::execute_script($this->init_code, $this->questiontext, null, null, $this->language);
 
         //and apply the result of the code
         $this->apply_code_result($step, $vars, $funcs);
-        
     }
 
     /**
@@ -155,98 +141,80 @@ class qtype_scripted_question extends question_graded_by_strategy implements que
      * @param array $funcs                  An associative array, which contains function definitions.
      * @return void
      */
-    public function apply_code_result(question_attempt_step $step, array $vars, array $funcs)
-    {
+    public function apply_code_result(question_attempt_step $step, array $vars, array $funcs) {
         //store the list of variables after the execution, for storage in the database
-    	$step->set_qt_var('_vars', self::safe_serialize($vars));
-    	$step->set_qt_var('_funcs', self::safe_serialize($funcs));
-    	
-    	//store a local copy of the MathScript state
-    	$this->vars = $vars;
+        $step->set_qt_var('_vars',  self::safe_serialize($vars));
+        $step->set_qt_var('_funcs', self::safe_serialize($funcs));
+        
+        //store a local copy of the script state
+        $this->vars = $vars;
         $this->funcs = $funcs;
     }
 
     /**
-     * execute_init_script 
+     * Executes the provided script, and returns its state: the script's return value, and a summary
+     * of all variables and functions extant at the end of the script's execution.
      * 
-     * @param mixed $code               The initialization
-     * @param mixed $question_text 
+     * @deprecated Use $this->create_interpreter() and friends instead.
+     * @param mixed $code The code to be executed.
+     * @param string $question_text Any question text which is going to be processed in conjunction with this script.
+     * @param array $vars Any variables which should be populated before this script is executed.
+     * @param array $functions Any functions which should be created before this script is executed.
+     * @param string $language The name of the language which should be intepreted. Lua is preferred.
      * @access public
      * @return array    
      */
-    static function execute_script($code, $question_text = false, $vars = false, $functions = false)
-    {
-     	//create a MathScript mathematics evaulator
-        $m = new MathScript(self::$extensions_allowed);
-    	$m->suppress_errors = true;
+    static function execute_script($code, $question_text = false, $vars = false, $functions = false, $language='mathscript') {
+        //Create a scripting language interpreter.
+        $interpreter = qtype_scripted_language_manager::create_interpreter($language, $vars, $functions);
 
-        //if question text was provided, initialize all contained variables to zero
-        if($question_text !== false)
-        {
-            //find all variables in the question text, and initialize them to 0
-            $variables = self::find_all_variables($question_text);
-            
-            //initialize each variable to zero in case they aren't overridden in the init script
-            foreach($variables as $var)
-                $m->evaluate($var .'=0');
-        }
-        //otherwise, load variables and functions, if 
-        else
-        {
-            //if variables were provided, load them
-            if($vars !== false)
-                $m->vars($vars);
-
-            //if functions were provided, load them
-            if($functions !== false)
-                $m->funcs_raw($functions);
+        //If we were provided with question text, ensure that all mentioned variables are initialized.
+        if($question_text) {
+          $interpreter->initialize_variables(self::find_all_variables($question_text));
         }
 
-    	//run the initlization "script"
-        $return = $m->evaluate_script($code);
+        //Execute the provided code...
+        $return = $interpreter->execute($code);
 
-        //return errors, a list of variable definitions, and a list of function definitions
-        return array($return, $m->vars(), $m->funcs_raw());       
+        //Return the return value, the created varaibles, and the created functions.
+        return array($return, $interpreter->get_variables(), $interpreter->get_functions());
     }
 
     /**
      * (non-PHPdoc)
      * @see question_definition::apply_attempt_state()
      */
-    public function apply_attempt_state(question_attempt_step $step)
-    {
-    	$this->vars = self::safe_unserialize($step->get_qt_var('_vars'));
-    	$this->funcs = self::safe_unserialize($step->get_qt_var('_funcs'));
+    public function apply_attempt_state(question_attempt_step $step) {
+        //Restore the serialized variables and functions.
+        $this->vars = self::safe_unserialize($step->get_qt_var('_vars'));
+        $this->funcs = self::safe_unserialize($step->get_qt_var('_funcs'));
     }
     
     
     /**
      * Summarizes a student response for the review (e.g. the Review Attempt view). 
      */
-    public function summarise_response(array $response) 
-    {
-    	//if a reponse has been provided, 
-        if (isset($response['answer'])) 
-            return $response['answer'];
-        else 
-            return null;
+    public function summarise_response(array $response) {
+        //If an answer has been provided, return it.
+        return isset($response['answer']) ? $response['answer'] : null;
     }
 
     /***
      * Returns true if the given response is considered valid or complete.
      */
-    public function is_complete_response(array $response) 
-    {
-	//a response without an answer is not a compelte response	
-	if(!array_key_exists('answer', $response))
-		return false;
+    public function is_complete_response(array $response) {
+
+        //a response without an answer is not a compelte response    
+        if(!array_key_exists('answer', $response)) {
+            return false;
+        }
 
         //determine gradability based on response type
-        switch($this->response_mode)
-        {
+        switch($this->response_mode) {
+
             //in string mode, accept any non-empty string
             case qtype_scripted_response_mode::MODE_STRING:
-	    case qtype_scripted_response_mode::MODE_STRING_CASE_SENSITIVE:
+            case qtype_scripted_response_mode::MODE_STRING_CASE_SENSITIVE:
                 return $response['answer'] !== "";
 
             //in numeric mode, accept any numeric string
@@ -264,24 +232,21 @@ class qtype_scripted_question extends question_graded_by_strategy implements que
             //do the same for octal 
             case qtype_scripted_response_mode::MODE_OCTAL:
                 return preg_match('#^(0o|\@)?[0-7]+$#', $response['answer']) !== 0 || (array_key_exists('answer', $response) && empty($response['answer']));
-
-
-
         }
     }
 
     /***
      * Returns an error message, in case the response won't validate. 
      */
-    public function get_validation_error(array $response) 
-    {
+    public function get_validation_error(array $response) {
+
         //if the string was gradeable, don't indicate an error
-        if ($this->is_gradable_response($response)) 
+        if ($this->is_gradable_response($response)) {
             return '';
+        }
 
         //otherwise, indicate an error depending on the type of reponse which was expected
-        switch($this->response_mode)
-        {
+        switch($this->response_mode) {
             case qtype_scripted_response_mode::MODE_NUMERIC:
                 return get_string('invalid_numeric', 'qtype_scripted');
             case qtype_scripted_response_mode::MODE_BINARY:
@@ -299,16 +264,14 @@ class qtype_scripted_question extends question_graded_by_strategy implements que
     /**
      * Returns true iff the two responses are identical.
      */
-    public function is_same_response(array $prevresponse, array $newresponse) 
-    {
+    public function is_same_response(array $prevresponse, array $newresponse) {
         return question_utils::arrays_same_at_key_missing_is_blank($prevresponse, $newresponse, 'answer');
     }
 
     /**
      * Returns all possible answers (including distractors) for the given question.
      */
-    public function get_answers() 
-    {
+    public function get_answers() {
         return $this->answers;
     }
 
@@ -316,81 +279,52 @@ class qtype_scripted_question extends question_graded_by_strategy implements que
      * Compares a given response with a given answer; the way which this is performed is determined by the
      * answer_mode variable.
      */
-    public function compare_response_with_answer(array $response, question_answer $answer) 
-    {  	
+    public function compare_response_with_answer(array $response, question_answer $answer) {      
 
-    	//parse the response according to the selected response mode
-    	$value = $this->parse_response($response);
-	
-    	//create a new math evaluation object
-        $m = new MathScript(self::$extensions_allowed);
-    	$m->suppress_errors = true;
-
-    	//define all known functions and variables (defined in the init script)
-    	$m->vars($this->vars);
-    	$m->funcs_raw($this->funcs);
+        //parse the response according to the selected response mode
+        $value = $this->parse_response($response);
     
-    	switch($this->answer_mode)
-    	{
-    		//for direct/answer modes,
-    		case qtype_scripted_answer_mode::MODE_MUST_EQUAL:
-    	
-    			//evaluate the given answer formula
-    			$ans = $m->evaluate($answer->answer);
+        //Create a new interpreter.
+        $interpreter = $this->create_interpreter($this->vars, $this->funcs);
+
+        //Process the answer according to the interpretation mode. 
+        switch($this->answer_mode)
+        {
+            //for direct/answer modes,
+            case qtype_scripted_answer_mode::MODE_MUST_EQUAL:
+        
+                //evaluate the given answer formula
+                $ans = $interpreter->evaluate($answer->answer);
     
-				//if we're comparing in a non-case-sensitive manner, convert the _answer_ to lowercase
-				if($this->response_mode === qtype_scripted_response_mode::MODE_STRING)
-					$ans = strtolower($ans);
+                //if we're comparing in a non-case-sensitive manner, convert the _answer_ to lowercase
+                if($this->response_mode === qtype_scripted_response_mode::MODE_STRING) {
+                    $ans = strtolower($ans);
+                }
 
-	 			//if the two are both numeric, compare them loosely, without regard to type; so 5 == "05" is true
-                if(is_numeric($ans) && is_numeric($value))
-    			{
-    				return $ans == $value;
-    			}
-    			//otherwise, compare them stricly; so "5a" !== 5; (note that, had we performed a loose compare, "5a" == 5 is true due to type juggling >.<)
-    			else
-    			{
-    				return $ans === $value;
-    			}
-    	
-    			//for boolean modes,
-    			 
-    			    			
-    			//case 'boolean':
-    		case qtype_scripted_answer_mode::MODE_MUST_EVAL_TRUE:
-    	
-                //we define the answer variable "resp"
-    			$m->evaluate('resp='.$value);
-    	
-    			//and return true iff the answer evaluates to True
-    			return (bool)$m->evaluate($answer->answer);
-    	
-    		default:
-    	
-    			//something's gone wrong
-    			throw new coding_exception('Invalid grading mode for calculated sane qtype.');
-    	
-    	}
-    }
-
-    public static function compare_string_with_wildcard($string, $pattern, $ignorecase) 
-    {
-        // Break the string on non-escaped asterisks.
-        $bits = preg_split('/(?<!\\\\)\*/', $pattern);
-        // Escape regexp special characters in the bits.
-        $excapedbits = array();
-        foreach ($bits as $bit) {
-            $excapedbits[] = preg_quote(str_replace('\*', '*', $bit));
+                 //if the two are both numeric, compare them loosely, without regard to type; so 5 == "05" is true
+                if(is_numeric($ans) && is_numeric($value)) {
+                    return $ans == $value;
+                }
+                //otherwise, compare them stricly; so "5a" !== 5; (note that, had we performed a loose compare, "5a" == 5 is true due to type juggling >.<)
+                else {
+                    return $ans === $value;
+                }
+        
+            //case 'boolean':
+            case qtype_scripted_answer_mode::MODE_MUST_EVAL_TRUE:
+        
+                //Define the variable "resp" in the context of the interpreter.
+                $interpreter->resp = $value;
+        
+                //and return true iff the answer evaluates to True
+                return (bool)$interpreter->evaluate($answer->answer);
+        
+            default:
+        
+                //something's gone wrong
+                throw new coding_exception('Invalid grading mode for calculated sane qtype.');
+        
         }
-        // Put it back together to make the regexp.
-        $regexp = '|^' . implode('.*', $excapedbits) . '$|u';
-
-        // Make the match insensitive if requested to.
-        if ($ignorecase) {
-            $regexp .= 'i';
-        }
-
-        return preg_match($regexp, trim($string));
     }
 
     /**
@@ -398,15 +332,12 @@ class qtype_scripted_question extends question_graded_by_strategy implements que
      * 
      * In our case, the user should be able to view the question, and its hints.
      */
-    public function check_file_access($qa, $options, $component, $filearea, $args, $forcedownload) 
-    {
-        if ($component == 'question' && $filearea == 'answerfeedback') 
-        {
+    public function check_file_access($qa, $options, $component, $filearea, $args, $forcedownload) {
+        if ($component == 'question' && $filearea == 'answerfeedback') {
             $currentanswer = $qa->get_last_qt_var('answer');
             $answer = $qa->get_question()->get_matching_answer(array('answer' => $currentanswer));
             $answerid = reset($args); // itemid is answer id.
             return $options->feedback && $answerid == $answer->id;
-
         } 
         else if ($component == 'question' && $filearea == 'hint') 
         {
@@ -425,32 +356,32 @@ class qtype_scripted_question extends question_graded_by_strategy implements que
      * 
      */
     public function format_questiontext($qa)
-	{
-		//get a list of varaibles created by the initialization MathScript 
-		$vars = self::safe_unserialize($qa->get_last_qt_var('_vars'));
-		
-		//get the quesiton text, with all known variables replaced with their values
-		$questiontext = self::replace_variables($this->questiontext, $vars);
-		
-		//run the question text through the basic moodle formatting engine
-		return $this->format_text($questiontext, $this->questiontextformat, $qa, 'question', 'questiontext', $this->id);
-		
+    {
+        //get a list of varaibles created by the initialization script 
+        $vars = self::safe_unserialize($qa->get_last_qt_var('_vars'));
+
+        //get the quesiton text, with all known variables replaced with their values
+        $questiontext = self::replace_variables($this->questiontext, $vars);
+
+        //run the question text through the basic moodle formatting engine
+        return $this->format_text($questiontext, $this->questiontextformat, $qa, 'question', 'questiontext', $this->id);
+
     }
 
-	/**
-	 * Parses the user response, returning a simple answer. 
-	 * The way in which the user's response is parsed depends on the Response Mode.
-	 *
-	 * @param array $response The user's response object.
-	 */
-	private function parse_response(array $response)
+    /**
+     * Parses the user response, returning a simple answer. 
+     * The way in which the user's response is parsed depends on the Response Mode.
+     *
+     * @param array $response The user's response object.
+     */
+    private function parse_response(array $response)
     {
         //strip all leading and trailing whitespace from the answer
         $response['answer'] = trim($response['answer']);
 
         //interpret the user's reponse according to the reponse mode
-		switch($this->response_mode)
-		{
+        switch($this->response_mode)
+        {
             
             //handle STRING-mode respones
             case qtype_scripted_response_mode::MODE_STRING:            
@@ -521,26 +452,33 @@ class qtype_scripted_question extends question_graded_by_strategy implements que
                 //otherwise, return the answer parsed as a octal number
                 else
                     return octdec($response['answer']);
-		}
-	}
+        }
+    }
+
+    /**
+     * @return A new interpreter suitable for executing the provided initialization script.
+     */
+    private function create_interpreter($variables=null, $functions=null) {
+        return qtype_scripted_language_manager::create_interpreter($this->language, $variables, $functions);
+    }
     
-	
-	public function get_correct_response()
-	{
-		//create a new math evaluation object:
-        $m = new MathScript(self::$extensions_allowed);
-		$m->suppress_errors = true;
-		 
-		//define all known functions and variables (defined in the init script)
-		$m->vars($this->vars);
-		$m->funcs_raw($this->funcs);
-
+    
+    /**
+     * Returns a sample correct answer, if we can determine one.
+     */
+    public function get_correct_response()
+    {
         //if the question is a "must eval true" question, we can't easily determine the answer
-        if($this->answer_mode == qtype_scripted_answer_mode::MODE_MUST_EVAL_TRUE)
+        if($this->answer_mode == qtype_scripted_answer_mode::MODE_MUST_EVAL_TRUE) {
             return null;
+        }
 
-		//evaluate the correct answer to get a given reponse, if possible
-        $answer = array('answer' => $m->evaluate($this->get_correct_answer()->answer));
+        //create a new interpreter
+        $interpreter = $this->create_interpreter($this->vars, $this->funcs);
+         
+        //evaluate the correct answer to get a given reponse, if possible
+        $answer_script = $this->get_correct_answer()->answer;
+        $answer = array('answer' => $interpreter->evaluate($answer_script));
 
         //return the correct answer depending on the response mode
         switch($this->response_mode)
@@ -560,88 +498,75 @@ class qtype_scripted_question extends question_graded_by_strategy implements que
                 $answer['answer'] = decoct($answer['answer']);
                 return $answer;
 
-            //for any other type, return the answer
+            //for any other type, return the answer directly
             default:
                 return $answer;
         }
     }
-	
-	/**
-	* Generate a brief, plain-text, summary of the correct answer to this question.
-	* This is used by various reports, and can also be useful when testing.
-	* This method will return null if such a summary is not possible, or
-	* inappropriate.
-	* @return string|null a plain text summary of the right answer to this question.
-	*/
-	/*
-	public function get_right_answer_summary()
-	{
-		return "Test summary.";
-	}
-	*/
-	
-	
-	/**
-	 * Wrapper for serialization; currently used in the event that we want to globally implement some safe serialization for
-	 * this question type.
-	 * 
-	 * FIXME FIXME FIXME implement safety!
-	 */
-	static function safe_serialize($object)
-	{
-		//TODO
-		
-		return serialize($object);
-	}
-	
-	/**
-	* Wrapper for unserialization; currently used in the event that we want to globally implement some safe serialization for
-	* this question type.
-	*
-	* FIXME FIXME FIXME implement safety!
-	*/
-	static function safe_unserialize($string)
-	{
-		return unserialize($string);
-	}
-
-
-    public function fill_in_variables($text)
+    
+    /**
+     * Wrapper which specifies the method by which we want to serialzie script data.
+     */
+    static function safe_serialize($object) {
+        return json_encode($object);
+    }
+    
+    /**
+    * Wrapper for unserialization; currently used in the event that we want to globally implement some safe serialization for
+    * this question type.
+    *
+    * FIXME FIXME FIXME Replace unsafe PHP serialzie with an upgrade script in db.
+    */
+    static function safe_unserialize($string)
     {
+        //TODO: Add upgrade engine to deprecate
+        if(substr($string, 0, 1) == 'a') {
+            return unserialize($string);
+        }
+
+        return json_decode($string, true);
+    }
+
+
+    /**
+     *
+     */ 
+    public function fill_in_variables($text) {
         return self::replace_variables($text, $this->vars);
     }
-	
-	/**
-	* Replaces all variables surrounded with curly braces in a block of text with their values.
-	*
-	* @param string $text 	The block of text which contains varaibles for substitution.
-	* @param array $vars	The full list of variables generated after the initialization MathScript.
-	* @return string		The provided text, with all known variable names replaced with their values.
-	*/
-	static function replace_variables($text, array $vars)
-	{
-		//replace each variable in the text with its value
-		foreach($vars as $name => $value)
-    		$text = str_replace('{'.$name.'}', $value, $text);
+    
+    /**
+    * Replaces all variables surrounded with curly braces in a block of text with their values.
+    *
+    * @param string $text     The block of text which contains varaibles for substitution.
+    * @param array $vars    The full list of variables generated after the initialization script.
+    * @return string        The provided text, with all known variable names replaced with their values.
+    */
+    static function replace_variables($text, array $vars) {
+
+        //replace each variable in the text with its value
+        foreach($vars as $name => $value) {
+            $text = str_replace('{'.$name.'}', $value, $text);
+        }
 
         //and return the processed text
-		return $text;
-	}
-	
+        return $text;
+    }
+    
     /**
      * Locates all variable-formatted entries in the question text.
-     * MathScript variables are formatted as {varname}, where varname is the variable name.
+     * Script variables are formatted as {varname}, where varname is the variable name.
      * 
      * @param string $text The HTML question text.
      * @return An array of variable names.
      */
-    static function find_all_variables($text)
-    {
-    	//extract all items of the form {[A-Za-z]+}, which are our variables
-        $variables = preg_match_all('|\{('.MATHSCRIPT_IDENTIFIER.')\}|', $text, $matches, PREG_SET_ORDER);
+    static function find_all_variables($text) {
 
-    	//return the first element of each match- the variable name without the curly braces
-    	return array_map(function($arr) { return $arr[1]; },  $matches);
+        //extract all items of the form {[A-Za-z_]+}, which are our variables
+        $variables = preg_match_all('|\{('.QTYPE_SCRIPTED_VARIABLE_IDENTIFIER.')\}|', $text, $matches, PREG_SET_ORDER);
+
+        //return the first element of each match- the variable name without the curly braces
+        return array_map(function($arr) { return $arr[1]; },  $matches);
     
     }
     

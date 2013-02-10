@@ -27,8 +27,8 @@ class qtype_scripted_edit_form extends qtype_shortanswer_edit_form
 		global $CFG, $PAGE;
 
         //Load the YUI2 modules used by the dynamic error checker.
-        $PAGE->requires->yui2_lib('node');
-        $PAGE->requires->yui2_lib('connection');
+        #$PAGE->requires->yui2_lib('node');
+        #$PAGE->requires->yui2_lib('connection');
 
         //Load the stylesheets required for syntax highlighting.
         $PAGE->requires->css('/question/type/scripted/scripts/codemirror/codemirror.css');
@@ -72,14 +72,14 @@ class qtype_scripted_edit_form extends qtype_shortanswer_edit_form
     *
     * @param MoodleQuickForm $mform the form being built.
     */
-    function definition_inner(&$mform)
+    function definition_inner($mform)
     {
     	global $CFG;
 
         //determine how the response will be interepteted (e.g. as a number)
     	$types = 
     	array(
-    		qtype_scripted_response_mode::MODE_STRING  => get_string('resp_string', 'qtype_scripted'),
+            qtype_scripted_response_mode::MODE_STRING  => get_string('resp_string', 'qtype_scripted'),
             qtype_scripted_response_mode::MODE_STRING_CASE_SENSITIVE  => get_string('resp_string_case', 'qtype_scripted'),
             qtype_scripted_response_mode::MODE_NUMERIC  => get_string('resp_numeric', 'qtype_scripted'),
             qtype_scripted_response_mode::MODE_HEXADECIMAL => get_string('resp_hexadecimal', 'qtype_scripted'),
@@ -87,17 +87,23 @@ class qtype_scripted_edit_form extends qtype_shortanswer_edit_form
             qtype_scripted_response_mode::MODE_OCTAL => get_string('resp_octal', 'qtype_scripted')
     	);
     	$mform->addElement('select', 'response_mode', get_string('responseform', 'qtype_scripted'), $types);
-    	
+
+      //prompt the user for the 
+      $languages = array(
+        'lua' => get_string('lua', 'qtype_scripted'),
+        'mathscript' => get_string('mathscript', 'qtype_scripted')
+      );
+      $mform->addElement('select', 'language', get_string('language', 'qtype_scripted'), $languages);
+
     	//prompt the user for simple answer or boolean expression evaluation
     	$types = array(
-                    				 qtype_scripted_answer_mode::MODE_MUST_EQUAL  => get_string('eval_direct', 'qtype_scripted'),
-                    				 qtype_scripted_answer_mode::MODE_MUST_EVAL_TRUE  => get_string('eval_boolean', 'qtype_scripted')
+         qtype_scripted_answer_mode::MODE_MUST_EQUAL  => get_string('eval_direct', 'qtype_scripted'),
+         qtype_scripted_answer_mode::MODE_MUST_EVAL_TRUE  => get_string('eval_boolean', 'qtype_scripted')
     	);
-    	$mform->addElement('select', 'answer_mode', get_string('answerform', 'qtype_scripted'), $types);
-    
+      $mform->addElement('select', 'answer_mode', get_string('answerform', 'qtype_scripted'), $types);
 
-        //insert the init-script editor
-        self::insert_editor($mform);
+      //Render the 
+      self::insert_editor($mform);
         
         //add settings for interactive (and similar) modes
     	$this->add_interactive_settings();
@@ -111,6 +117,7 @@ class qtype_scripted_edit_form extends qtype_shortanswer_edit_form
     /**
      * Helper function, which inserts a Scripted editor into the given question. 
      * Abstracted so it can be utilized by deriving classes, as well.
+     * TODO: Move to lib.php?
      * 
      * @param mixed $mform 
      * @return void

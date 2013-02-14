@@ -6,3 +6,6 @@
 .que.shortanswer .answer input {
     width: 80%;
 }
+
+.code-error {font-family: monospace; background-color: #ffcce0; color: #a00; padding: 2px 5px 3px; }
+.code-error-icon {color: white; background-color: #a00; font-weight: normal; border-radius: 50%; padding: 0px 3px 0px 4px; margin-left: 5px; margin-right: 10px;}

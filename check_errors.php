@@ -1,5 +1,14 @@
 <?php
 
+//Set up our Moodle session...
+define('AJAX_SCRIPT', true);
+require_once('../../../config.php');
+require_once('locallib.php');
+
+//Ensure that only logged in users can check scripts.
+//(This allows us to limit the general usage.)
+require_login();
+
 //easy way to profile
 function getTime() 
 { 
@@ -12,58 +21,51 @@ function getTime()
 $start = getTime();
 
 //don't display PHP errors just in case
-ini_set('display_errors', 1);
+ini_set('display_errors', 0);
 
 if(empty($_POST['script'])) {
 	die();
 }
 
-//include the math evaluator 
-require_once './mathscript/mathscript.class.php';
-require_once './mathscript/mathscript_randomization.php';
-require_once './mathscript/mathscript_binary.php';
-require_once './mathscript/mathscript_control.php';
-require_once './mathscript/mathscript_legacy.php';
-require_once './mathscript/mathscript_debug.php';
-require_once './mathscript/mathscript_string.php';
-require_once './mathscript/mathscript_logic.php';
-require_once './mathscript/mathscript_array.php';
-
 //get the script to execute
 $script = $_POST['script'];
 
 //create a new math evaluator object
-$m = new MathScript(array('spreadsheet', 'basicmath', 'randomization', 'binary', 'control', 'legacy', 'debug', 'string', 'logic', 'array'));
-$m->suppress_errors = true;
+$interpreter = qtype_scripted_language_manager::create_interpreter($_POST['language']);
 
 //evaluate the script passed on post
 //(this _should_ be a safe operation- it's interpreted and heavily controlled by EvalMath, not php)
-$errors = $m->evaluate_script($script);
+$error = null;
+  
+try {
+  $interpreter->execute($script);
+}
+catch(Exception $x) {
+  $error = $interpreter->error_information($x);
+}
 
 //if we're not looking for errors related to a given target, display all errors
 if(empty($_POST['target']))
 {
 	
-	if($errors)
-	{
+	if($error)
+  {
+    echo json_encode($error)."\n";
 		echo '<br />Errors exist within your code:<br />';
 		echo '<ul>';
-		foreach($errors as $error)
-		{
-			echo '<li>'; //TODO: use cfg?
-			echo '&nbsp;&nbsp; <font color="#CC1B23"><strong>Syntax Error:</strong>&nbsp;&nbsp;'.$error.'</font>';
-			echo '</li>';
-		}
-		echo '</ul>';
+    echo '<li>'; //TODO: use cfg?
+    echo '&nbsp;&nbsp; <font color="#CC1B23"><strong>Syntax Error:</strong>&nbsp;&nbsp;'.$error['message'].'</font>';
+    echo '</li>';
+    echo '</ul>';
 	}
 	else
 	{
+    echo json_encode(null)."\n";
 		echo '<br /><table><tr><th style="padding: 5px; !important; border-bottom: 1px solid #000; border-right: 1px solid #000;">Variable</th><th style="padding: 55x; !important; border-bottom: 1px solid #000;">Sample Value</th></tr>';
 		
-		$vars = $m->vars();
+		$vars = $interpreter->get_variables();
 		foreach($vars as $name => $var)		
-			echo '<tr><td align="center" style="padding: 4px; !important; border-right: 1px solid #000;">'.$name.'</td><td align="center" style="padding: 4px; !important"><em>'.$var.'</em></td></tr>';
-		
+			echo '<tr><td align="center" style="padding: 4px; !important; border-right: 1px solid #000;">'.$name.'</td><td align="center" style="padding: 4px; !important"><em>'.print_r($var, 1).'</em></td></tr>'; 
 		echo '</table>';
 	}
 }
@@ -71,11 +73,13 @@ if(empty($_POST['target']))
 else
 {
 	//evaluate the target expression as well
-	$m->evaluate($_POST['target']);
-	
-	
-	if(!empty($m->last_error))
-		echo $m->last_error; //TODO: remove line number, etc.
+  try
+  {
+    $interpreter->evaluate($_POST['target']);
+  } 
+  catch(Exception $e) {
+    print_object($e);
+  }
 }
 
 $end = getTime();

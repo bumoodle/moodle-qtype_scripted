@@ -132,4 +132,22 @@ class qtype_scripted_language_lua extends qtype_scripted_language {
     public function set_functions($values) {
     }
 
+    /**
+     * Extracts information from a raised exception.
+     * Returns an associative array of known error information.
+     *
+     * Most languages should override this function.
+     */
+    public function error_information($exception) {
+
+      $message = $exception->getMessage();
+
+      return array(
+        'message'     =>  'Line '.$message,
+        'line_number' =>  intval(current(explode(':', $message)))
+      );
+    }
+
+
+
 }

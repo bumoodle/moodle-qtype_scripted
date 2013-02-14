@@ -96,6 +96,7 @@ class qtype_scripted_question extends question_graded_by_strategy implements que
     public $language;
 
 
+
     /**
      * Creates a new Scripted question instance.
      */

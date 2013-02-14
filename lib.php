@@ -3,6 +3,15 @@
 
 defined('MOODLE_INTERNAL') || die();
 
+/**
+ * Class which handles meta-data for the scripted question type.
+ */ 
+class qtype_scripted_plugin {
+    
+    /** @const string Specifies the path to the question type, relative to the moodle root. */
+    const PATH = '/question/type/scripted';
+}
+
 
 /**
 * 

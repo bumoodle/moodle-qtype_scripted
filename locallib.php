@@ -165,6 +165,16 @@ abstract class qtype_scripted_language {
     return $value;
   }
 
+  /**
+   * Extracts information from a raised exception.
+   * Returns an associative array of known error information.
+   *
+   * Most languages should override this function.
+   */
+  public function error_information($exception) {
+    return array('message' => $exception->getMessage());
+  }
+
 }
 
 //Require all of the local language plugins.

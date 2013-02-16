@@ -9,3 +9,10 @@
 
 .code-error {font-family: monospace; background-color: #ffcce0; color: #a00; padding: 2px 5px 3px; }
 .code-error-icon {color: white; background-color: #a00; font-weight: normal; border-radius: 50%; padding: 0px 3px 0px 4px; margin-left: 5px; margin-right: 10px;}
+
+.code-result table { margin-left: auto; margin-right: auto; }
+.code-result th { padding: 8px; !important; border-bottom: 1px solid #000; }
+.code-result td { padding: 8px; !important; text-align: center; font-style: italic; font-family: 'Incosolata', monospace; }
+.code-result td:first-child, th:first-child { border-right: 1px solid #000; }
+
+.footnote { font-size: 8pt; font-style: italic;}

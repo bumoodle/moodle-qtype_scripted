@@ -70,3 +70,6 @@ $string['mathscript'] = 'MathScript (Deprecated)';
 $string['invalidlanguage'] = 'An invalid scripting language was requested.';
 $string['invalidlanguage_debug'] = 'The language {$a} wasn\'t registered as a valid scripting language.';
 
+$string['variable'] = 'Variable';
+$string['samplevalue'] = 'Sample Value';
+$string['executiontime'] = 'Script took {$a} seconds to execute.';

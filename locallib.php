@@ -135,7 +135,7 @@ abstract class qtype_scripted_language {
    * convenience shortcut for get_variable().
    */
   public function __get($variable) {
-    return get_variable($variable);
+    return $this->get_variable($variable);
   }
 
   /**
@@ -174,6 +174,18 @@ abstract class qtype_scripted_language {
   public function error_information($exception) {
     return array('message' => $exception->getMessage());
   }
+
+  /**
+   * Returns a flat array summarizing all of the available variables.
+   *
+   * Each key represents a varaible name in a format suitable for use 
+   * with get_variable(); each value represents the corresponding variable's
+   * value.
+   */
+  public function summarize_variables() {
+    return $this->get_variables();
+  }
+
 
 }
 

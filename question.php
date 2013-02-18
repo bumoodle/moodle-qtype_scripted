@@ -28,8 +28,6 @@ defined('MOODLE_INTERNAL') || die();
 
 require_once($CFG->dirroot.'/question/type/scripted/locallib.php');
 
-define('QTYPE_SCRIPTED_VARIABLE_IDENTIFIER', '[A-Za-z][A-Za-z0-9_\[\]\.\:]*');
-
 class qtype_scripted_response_mode {
 
     /** *  Interpret the user's response as a string, which may be numeric, if MODE_MUST_EQUAL is selected.  */
@@ -169,11 +167,6 @@ class qtype_scripted_question extends question_graded_by_strategy implements que
         //Create a scripting language interpreter.
         $interpreter = qtype_scripted_language_manager::create_interpreter($language, $vars, $functions);
 
-        //If we were provided with question text, ensure that all mentioned variables are initialized.
-        if($question_text) {
-          $interpreter->initialize_variables(self::find_all_variables($question_text));
-        }
-
         //Execute the provided code...
         $return = $interpreter->execute($code);
 
@@ -186,6 +179,7 @@ class qtype_scripted_question extends question_graded_by_strategy implements que
      * @see question_definition::apply_attempt_state()
      */
     public function apply_attempt_state(question_attempt_step $step) {
+
         //Restore the serialized variables and functions.
         $this->vars = self::safe_unserialize($step->get_qt_var('_vars'));
         $this->funcs = self::safe_unserialize($step->get_qt_var('_funcs'));
@@ -285,7 +279,7 @@ class qtype_scripted_question extends question_graded_by_strategy implements que
         //parse the response according to the selected response mode
         $value = $this->parse_response($response);
     
-        //Create a new interpreter.
+        //Create a new interpreter using the serialized question state.
         $interpreter = $this->create_interpreter($this->vars, $this->funcs);
 
         //Process the answer according to the interpretation mode. 
@@ -354,19 +348,72 @@ class qtype_scripted_question extends question_graded_by_strategy implements que
     
     /**
      * Inserts the varaibles for the given question text, then calls the basic formatter.
-     * 
      */
     public function format_questiontext($qa)
     {
         //get a list of varaibles created by the initialization script 
         $vars = self::safe_unserialize($qa->get_last_qt_var('_vars'));
 
-        //get the quesiton text, with all known variables replaced with their values
-        $questiontext = self::replace_variables($this->questiontext, $vars);
+        //execute any code in double brackets _first_
+        $questiontext = $this->questiontext;
+
+        //Evaluate all of the question's inline code.
+        $operations = array(2 => 'execute', 1=> 'evaluate');
+        foreach($operations as $bracket_level => $operation) {
+          $questiontext = $this->handle_inline_code($questiontext, $bracket_level, $operation);
+        }
 
         //run the question text through the basic moodle formatting engine
         return $this->format_text($questiontext, $this->questiontextformat, $qa, 'question', 'questiontext', $this->id);
+    }
 
+    /**
+     * Evalutes inline-code (code surrounded in curly braces) provided as part of the question.
+     *
+     * @param string $text The question text to process.
+     * @param string $match_level The amount of curly braces that should surround each block of inline code.
+     * @param string $mode Can be either "evaluate" or "execute". Determines whether the code is evaluated (as an expression) or executed (as a block).
+     * @param qtype_scripted_language $interpreter The interpreter which should be used to evaluate the inline code.
+     * @param bool $show_errors If set, errors will be displayed inline.
+     *
+     * @return string The question text with the all inline code evaluated. Executed code is replaced by its "standard output"; while evaluated code is
+     *     replaced by the result of the evaluated expressions.
+     */
+    private function handle_inline_code($text, $match_level = 1, $mode = 'evaluate', $interpreter = null, $show_errors = true) {
+
+      //If we haven't been provided with an interpreter, create a new one.
+      $interpreter = $interpreter ?: $this->create_interpreter($this->vars, $this->funcs);
+
+      //Create a callback lambda which evaluates each block of inline code.
+      $callback = function($matches) use($interpreter, $mode, $show_errors) {
+
+        //Attempt to evaluate the given expression...
+        try {
+          return $interpreter->$mode($matches[1]); 
+        }
+        //... and insert a placeholder if the string fails.
+        catch(qtype_scripted_language_exception $e) {
+
+          //If show errors is on, display the exception directly...
+          if($show_errors) {
+            return '['.$e->getMessage().' in '.$matches[1].']';
+          }
+          //Otherwise, show a placeholder.
+          else {
+            return get_string('error_placeholder', 'qtype_scripted');
+          }
+        }
+      };
+
+      //Create a regular expression piece that matches the correct number
+      //of open/close braces.
+      $open_brace = str_repeat('\\{', $match_level);
+      $close_brace = str_repeat('\\}', $match_level);
+
+      
+
+      //And replace each section in curly brackets with the evaluated version of that expression.
+      return preg_replace_callback('/'.$open_brace.'(.*?)'.$close_brace.'/', $callback, $text);
     }
 
     /**
@@ -515,25 +562,22 @@ class qtype_scripted_question extends question_graded_by_strategy implements que
     /**
     * Wrapper for unserialization; currently used in the event that we want to globally implement some safe serialization for
     * this question type.
-    *
-    * FIXME FIXME FIXME Replace unsafe PHP serialzie with an upgrade script in db.
     */
-    static function safe_unserialize($string)
-    {
-        //TODO: Add upgrade engine to deprecate
-        if(substr($string, 0, 1) == 'a') {
-            return unserialize($string);
-        }
-
+    static function safe_unserialize($string) {
         return json_decode($string, true);
     }
 
-
     /**
-     *
-     */ 
-    public function fill_in_variables($text) {
-        return self::replace_variables($text, $this->vars);
+     * @deprecated Use handle_inline_code instead.
+     */
+    public function fill_in_variables($text, $interpreter = null) {
+
+      //Create a new interpreter using the serialized question state, 
+      //if one does not already exist.
+      $interpreter = $interpreter ?: $this->create_interpreter($this->vars, $this->funcs);
+
+      //Pass the value to the newer handle-inline-code.
+      return $this->handle_inline_code($text, $interpreter, 1, 'evaluate');
     }
     
     /**
@@ -552,23 +596,6 @@ class qtype_scripted_question extends question_graded_by_strategy implements que
 
         //and return the processed text
         return $text;
-    }
-    
-    /**
-     * Locates all variable-formatted entries in the question text.
-     * Script variables are formatted as {varname}, where varname is the variable name.
-     * 
-     * @param string $text The HTML question text.
-     * @return An array of variable names.
-     */
-    static function find_all_variables($text) {
-
-        //extract all items of the form {[A-Za-z_]+}, which are our variables
-        $variables = preg_match_all('|\{('.QTYPE_SCRIPTED_VARIABLE_IDENTIFIER.')\}|', $text, $matches, PREG_SET_ORDER);
-
-        //return the first element of each match- the variable name without the curly braces
-        return array_map(function($arr) { return $arr[1]; },  $matches);
-    
     }
     
     

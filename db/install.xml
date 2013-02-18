@@ -7,7 +7,8 @@
 <FIELD NAME="answers" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false" COMMENT="Redundant. Comma-separated list of question_answer ids. SELECT id FROM question_answers WHERE question = ? ORDER BY id." PREVIOUS="question" NEXT="init_code"/>
 <FIELD NAME="init_code" TYPE="text" LENGTH="big" NOTNULL="false" SEQUENCE="false" COMMENT="Initializer code for the sane question" PREVIOUS="answers" NEXT="answer_mode"/>
 <FIELD NAME="answer_mode" TYPE="text" LENGTH="small" NOTNULL="false" SEQUENCE="false" COMMENT="Answer mode" PREVIOUS="init_code" NEXT="response_mode"/>
-<FIELD NAME="response_mode" TYPE="int" LENGTH="4" NOTNULL="false" UNSIGNED="true" DEFAULT="0" SEQUENCE="false" COMMENT="An integer indicating the response mode" PREVIOUS="answer_mode"/>
+<FIELD NAME="response_mode" TYPE="int" LENGTH="4" NOTNULL="false" UNSIGNED="true" DEFAULT="0" SEQUENCE="false" COMMENT="An integer indicating the response mode" PREVIOUS="answer_mode" NEXT="language"/>
+<FIELD NAME="language" TYPE="text" LENGTH="small" NOTNULL="false" SEQUENCE="false" COMMENT="Scripting language used" PREVIOUS="response_mode" />
 </FIELDS>
 <KEYS>
 <KEY NAME="primary" TYPE="primary" FIELDS="id" NEXT="question"/>

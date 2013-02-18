@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Upgrade library code for the shortanswer question type.
+ * Unit tests for the Lua scripting language interface.
  *
  * @package    qtype
  * @subpackage scripted
@@ -25,20 +25,30 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-function qtype_scripted_upgrade_serialization() {
+global $CFG;
+require_once($CFG->dirroot.'/question/type/scripted/locallib.php');
 
-    global $DB;
+/**
+ * Unit tests for the scripted question definition class.
+ *
+ * @copyright  2013 Binghamton University
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+class qtype_scripted_question_test extends advanced_testcase {
 
-    $set = $DB->get_recordset('question_scripted', null, '', 'id, language');
-
-    foreach($set as $record) {
-
-      $record->
-
-      $DB->update_record('question_scripted', $record, true); 
+    public function setUp() {
+        $this->lua = qtype_scripted_language_manager::create_interpreter('lua');
     }
 
-    $set->close();
+    public function test_execute_throws_exception_on_infinite_loop() {
+        $this->setExpectedException('qtype_scripted_language_exception');
+        $this->lua->execute("while true do end");
+    }
+
+    public function test_execute_throws_exception_on_long_running_code() {
+        $this->setExpectedException('qtype_scripted_language_exception');
+        $this->lua->execute("for i=1,math.huge do end");
+    }
 
 
 }

@@ -85,6 +85,32 @@ abstract class qtype_scripted_language_manager {
 
 }
 
+/** Base class for all scripting language exceptions. */
+class qtype_scripted_language_exception extends exception 
+{
+    public function shortMessage() {
+      return $this->message;
+    }
+}
+
+/**
+ * Generic exception which can be used to wrap errors raised by
+ * scripting langauges that do not extend qtype_scripted_language_exception.
+ */ 
+class qtype_scripted_language_interpreter_exception extends qtype_scripted_language_exception {
+
+    public function __construct($wrapped_exception) {
+        $this->inner_exception = $wrapped_exception; 
+        parent::__construct($this->inner_exception->getMessage());
+    }
+
+    public function __toString() {
+        return $this->inner_exception->__toString();
+    }
+}
+
+class qtype_scripted_invalid_result extends qtype_scripted_language_exception {}
+
 /**
  * Base for a scripting language.
  *
@@ -143,7 +169,7 @@ abstract class qtype_scripted_language {
    */
   public function set_variable($name, $value) {
     $vars = $this->get_variables();
-    $vars[$name] = $value;
+    $vars[$name] = $this->preprocess_value($value);
     $vars = $this->set_variables($vars);
   }
 

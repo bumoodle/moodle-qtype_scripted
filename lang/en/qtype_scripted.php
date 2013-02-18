@@ -73,3 +73,5 @@ $string['invalidlanguage_debug'] = 'The language {$a} wasn\'t registered as a va
 $string['variable'] = 'Variable';
 $string['samplevalue'] = 'Sample Value';
 $string['executiontime'] = 'Script took {$a} seconds to execute.';
+
+$string['error_placeholder'] = '[?]';

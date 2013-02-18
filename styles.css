@@ -16,3 +16,13 @@
 .code-result td:first-child, th:first-child { border-right: 1px solid #000; }
 
 .footnote { font-size: 8pt; font-style: italic;}
+
+.CodeMirror {
+  border: 1px solid #eee;
+  height: auto;
+}
+.CodeMirror-scroll {
+  overflow-y: hidden;
+  overflow-x: auto;
+}
+

@@ -388,7 +388,7 @@ class qtype_scripted_question extends question_graded_by_strategy implements que
      * @return string The question text with the all inline code evaluated. Executed code is replaced by its "standard output"; while evaluated code is
      *     replaced by the result of the evaluated expressions.
      */
-    private function handle_inline_code($text, $match_level = 1, $mode = 'evaluate', $interpreter = null, $show_errors = true) {
+    private function handle_inline_code($text, $match_level = 1, $mode = 'evaluate', $interpreter = null, $show_errors = false) {
 
       //If we haven't been provided with an interpreter, create a new one.
       $interpreter = $interpreter ?: $this->create_interpreter($this->vars, $this->funcs);
@@ -418,8 +418,6 @@ class qtype_scripted_question extends question_graded_by_strategy implements que
       //of open/close braces.
       $open_brace = str_repeat('\\{', $match_level);
       $close_brace = str_repeat('\\}', $match_level);
-
-      
 
       //And replace each section in curly brackets with the evaluated version of that expression.
       return preg_replace_callback('/'.$open_brace.'(.*?)'.$close_brace.'/', $callback, $text);
@@ -580,32 +578,7 @@ class qtype_scripted_question extends question_graded_by_strategy implements que
      * @deprecated Use handle_inline_code instead.
      */
     public function fill_in_variables($text, $interpreter = null) {
-
-      //Create a new interpreter using the serialized question state, 
-      //if one does not already exist.
-      $interpreter = $interpreter ?: $this->create_interpreter($this->vars, $this->funcs);
-
       //Pass the value to the newer handle-inline-code.
       return $this->handle_inline_code($text, $interpreter, 1, 'evaluate');
     }
-    
-    /**
-    * Replaces all variables surrounded with curly braces in a block of text with their values.
-    *
-    * @param string $text     The block of text which contains varaibles for substitution.
-    * @param array $vars    The full list of variables generated after the initialization script.
-    * @return string        The provided text, with all known variable names replaced with their values.
-    */
-    static function replace_variables($text, array $vars) {
-
-        //replace each variable in the text with its value
-        foreach($vars as $name => $value) {
-            $text = str_replace('{'.$name.'}', $value, $text);
-        }
-
-        //and return the processed text
-        return $text;
-    }
-    
-    
 }

@@ -18,7 +18,7 @@
  * Unit tests for the shortanswer question type class.
  *
  * @package    qtype
- * @subpackage shortanswer
+ * @subpackage scripted
  * @copyright  2007 The Open University
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -27,7 +27,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 global $CFG;
-require_once($CFG->dirroot . '/question/type/shortanswer/questiontype.php');
+require_once($CFG->dirroot . '/question/type/scripted/questiontype.php');
 require_once($CFG->dirroot . '/question/engine/tests/helpers.php');
 
 
@@ -40,13 +40,13 @@ require_once($CFG->dirroot . '/question/engine/tests/helpers.php');
 class qtype_scripted_test extends advanced_testcase {
     public static $includecoverage = array(
         'question/type/questiontypebase.php',
-        'question/type/shortanswer/questiontype.php',
+        'question/type/scripted/questiontype.php',
     );
 
     protected $qtype;
 
     protected function setUp() {
-        $this->qtype = new qtype_shortanswer();
+        $this->qtype = new qtype_scripted();
     }
 
     protected function tearDown() {
@@ -54,11 +54,11 @@ class qtype_scripted_test extends advanced_testcase {
     }
 
     protected function get_test_question_data() {
-        return test_question_maker::get_question_data('shortanswer');
+        return test_question_maker::get_question_data('scripted');
     }
 
     public function test_name() {
-        $this->assertEquals($this->qtype->name(), 'shortanswer');
+        $this->assertEquals($this->qtype->name(), 'scripted');
     }
 
     public function test_can_analyse_responses() {
@@ -66,33 +66,8 @@ class qtype_scripted_test extends advanced_testcase {
     }
 
     public function test_get_random_guess_score() {
-        $q = test_question_maker::get_question_data('shortanswer');
-        $q->options->answers[15]->fraction = 0.1;
-        $this->assertEquals(0.1, $this->qtype->get_random_guess_score($q));
+        $q = test_question_maker::get_question_data('scripted');
+        $this->assertEquals(null, $this->qtype->get_random_guess_score($q));
     }
 
-    public function test_get_possible_responses() {
-        $q = test_question_maker::get_question_data('shortanswer');
-
-        $this->assertEquals(array(
-            $q->id => array(
-                13 => new question_possible_response('frog', 1),
-                14 => new question_possible_response('toad', 0.8),
-                15 => new question_possible_response('*', 0),
-                null => question_possible_response::no_response()
-            ),
-        ), $this->qtype->get_possible_responses($q));
-    }
-
-    public function test_get_possible_responses_no_star() {
-        $q = test_question_maker::get_question_data('shortanswer', 'frogonly');
-
-        $this->assertEquals(array(
-            $q->id => array(
-                13 => new question_possible_response('frog', 1),
-                0 => new question_possible_response(get_string('didnotmatchanyanswer', 'question'), 0),
-                null => question_possible_response::no_response()
-            ),
-        ), $this->qtype->get_possible_responses($q));
-    }
 }

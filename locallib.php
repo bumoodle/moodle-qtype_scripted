@@ -86,12 +86,7 @@ abstract class qtype_scripted_language_manager {
 }
 
 /** Base class for all scripting language exceptions. */
-class qtype_scripted_language_exception extends exception 
-{
-    public function shortMessage() {
-      return $this->message;
-    }
-}
+class qtype_scripted_language_exception extends exception {}
 
 /**
  * Generic exception which can be used to wrap errors raised by
@@ -101,7 +96,7 @@ class qtype_scripted_language_interpreter_exception extends qtype_scripted_langu
 
     public function __construct($wrapped_exception) {
         $this->inner_exception = $wrapped_exception; 
-        parent::__construct($this->inner_exception->getMessage());
+        $this->message = $this->inner_exception->getMessage();
     }
 
     public function __toString() {
@@ -169,7 +164,7 @@ abstract class qtype_scripted_language {
    */
   public function set_variable($name, $value) {
     $vars = $this->get_variables();
-    $vars[$name] = $this->preprocess_value($value);
+    $vars[$name] = $value;
     $vars = $this->set_variables($vars);
   }
 
@@ -177,7 +172,7 @@ abstract class qtype_scripted_language {
    * convenience shortcut for set_variable().
    */
   public function __set($variable, $value) {
-    return set_variable($variable, $value);
+    return $this->set_variable($variable, $value);
   }
 
   /**
@@ -212,6 +207,22 @@ abstract class qtype_scripted_language {
     return $this->get_variables();
   }
 
+  /**
+   * Gets an array that includes all function objects.
+   * Only supported for languages for which functions aren't first-class objects.
+   */
+  public function get_functions() {
+      return array();
+  }
+  
+  /**
+   * Sets all variables in the current interpreter's environment.
+   * Only supported for languages in which functions aren't first-class objects.
+   * 
+   * @param array $values Associative array mapping name to value.
+   */
+  public function set_functions($values) {
+  }
 
 }
 

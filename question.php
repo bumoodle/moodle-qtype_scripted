@@ -50,11 +50,8 @@ class qtype_scripted_response_mode {
 }
 
 class qtype_scripted_answer_mode {
-    /** * True to indciate that a correct response must be equal (using PHP's ==) to the evaluated answer.  */
+    /** * True to indciate that a correct response must be equal (using PHP's == if both answers are numeric, and === otheriwse) to the evaluated answer.  */
     const MODE_MUST_EQUAL = 0;
-    
-    /** * True to indciate that a correct response must be congruent (using PHP's ===) to the evaluated answer.  */
-    const MODE_MUST_BE_CONGRUENT = 1;
     
     /** * True to indicate that the evaluated answer (which will depend on the user's response) must be nonzero.  */
     const MODE_MUST_EVAL_TRUE = 2;
@@ -140,7 +137,7 @@ class qtype_scripted_question extends question_graded_by_strategy implements que
      * @param array $funcs                  An associative array, which contains function definitions.
      * @return void
      */
-    public function apply_code_result(question_attempt_step $step, array $vars, array $funcs) {
+    protected function apply_code_result(question_attempt_step $step, array $vars, array $funcs) {
         //store the list of variables after the execution, for storage in the database
         $step->set_qt_var('_vars',  self::safe_serialize($vars));
         $step->set_qt_var('_funcs', self::safe_serialize($funcs));
@@ -163,7 +160,7 @@ class qtype_scripted_question extends question_graded_by_strategy implements que
      * @access public
      * @return array    
      */
-    static function execute_script($code, $question_text = false, $vars = false, $functions = false, $language='mathscript') {
+    public static function execute_script($code, $question_text = false, $vars = false, $functions = false, $language='mathscript') {
         //Create a scripting language interpreter.
         $interpreter = qtype_scripted_language_manager::create_interpreter($language, $vars, $functions);
 
@@ -210,7 +207,7 @@ class qtype_scripted_question extends question_graded_by_strategy implements que
             //in string mode, accept any non-empty string
             case qtype_scripted_response_mode::MODE_STRING:
             case qtype_scripted_response_mode::MODE_STRING_CASE_SENSITIVE:
-                return $response['answer'] !== "";
+                return $response['answer'] !== '';
 
             //in numeric mode, accept any numeric string
             case qtype_scripted_response_mode::MODE_NUMERIC:
@@ -222,11 +219,11 @@ class qtype_scripted_question extends question_graded_by_strategy implements que
 
             //do the same for hexadecimal
             case qtype_scripted_response_mode::MODE_HEXADECIMAL:
-                return preg_match('#^(0x|\$)?[0-9a-fA-F]+$#', $response['answer']) !== 0 || (array_key_exists('answer', $response) && empty($response['answer']));
+                return preg_match('#^(0x|\$)?[0-9a-fA-F]+$#', $response['answer']) !== 0;
 
             //do the same for octal 
             case qtype_scripted_response_mode::MODE_OCTAL:
-                return preg_match('#^(0o|\@)?[0-7]+$#', $response['answer']) !== 0 || (array_key_exists('answer', $response) && empty($response['answer']));
+                return preg_match('#^(0o|\@)?[0-7]+$#', $response['answer']) !== 0;
         }
     }
 
@@ -309,15 +306,23 @@ class qtype_scripted_question extends question_graded_by_strategy implements que
             case qtype_scripted_answer_mode::MODE_MUST_EVAL_TRUE:
         
                 //Define the variable "resp" in the context of the interpreter.
+                //Also define response, as per the principle of least astonishment.
                 $interpreter->resp = $value;
-        
-                //and return true iff the answer evaluates to True
-                return (bool)$interpreter->evaluate($answer->answer);
+                $interpreter->response = $value;
+
+                try {
+                    //and return true iff the answer evaluates to True
+                    return (bool)$interpreter->evaluate($answer->answer);
+                }
+                //If an error occurs during evalution, return false.
+                catch(qtype_scripted_language_exception $e) {
+                    return false;
+                }
         
             default:
         
                 //something's gone wrong
-                throw new coding_exception('Invalid grading mode for calculated sane qtype.');
+                throw new coding_exception('Invalid grading mode for the scripted qtype.');
         
         }
     }
@@ -328,11 +333,15 @@ class qtype_scripted_question extends question_graded_by_strategy implements que
      * In our case, the user should be able to view the question, and its hints.
      */
     public function check_file_access($qa, $options, $component, $filearea, $args, $forcedownload) {
+
         if ($component == 'question' && $filearea == 'answerfeedback') {
+
             $currentanswer = $qa->get_last_qt_var('answer');
             $answer = $qa->get_question()->get_matching_answer(array('answer' => $currentanswer));
             $answerid = reset($args); // itemid is answer id.
+
             return $options->feedback && $answerid == $answer->id;
+
         } 
         else if ($component == 'question' && $filearea == 'hint') 
         {

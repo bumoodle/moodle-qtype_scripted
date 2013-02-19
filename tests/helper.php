@@ -18,7 +18,7 @@
  * Test helpers for the scripted question type.
  *
  * @package    qtype_scripted
- * @copyright  2012 The Open University
+ * @copyright  2013 The Open University
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -35,31 +35,40 @@ defined('MOODLE_INTERNAL') || die();
 class qtype_scripted_test_helper extends question_test_helper {
 
     public function get_test_questions() {
-        return array('frogtoad', 'frogonly', 'escapedwildcards');
+        return array('lua_numeric');
     }
 
     /**
-     * Makes a scripted question with correct ansewer 'frog', partially
-     * correct answer 'toad' and defaultmark 1. This question also has a
-     * '*' match anything answer.
-     * @return qtype_scripted_question
+     * Makes a scripted question whose answer is x + 3, where x = 3. 
      */
-    public function make_scripted_question_frogtoad() {
+    public function make_scripted_question_lua_numeric() {
+        
         question_bank::load_question_definition_classes('scripted');
-        $sa = new qtype_scripted_question();
-        test_question_maker::initialise_a_question($sa);
-        $sa->name = 'Short answer question';
-        $sa->questiontext = 'Name an amphibian: __________';
-        $sa->generalfeedback = 'Generalfeedback: frog or toad would have been OK.';
-        $sa->usecase = false;
-        $sa->answers = array(
-            13 => new question_answer(13, 'frog', 1.0, 'Frog is a very good answer.', FORMAT_HTML),
-            14 => new question_answer(14, 'toad', 0.8, 'Toad is an OK good answer.', FORMAT_HTML),
-            15 => new question_answer(15, '*', 0.0, 'That is a bad answer.', FORMAT_HTML),
-        );
-        $sa->qtype = question_bank::get_qtype('scripted');
 
-        return $sa;
+        //Create a new Scripted question.
+        $sc = new qtype_scripted_question();
+        test_question_maker::initialise_a_question($sc);
+
+        //Set up its options:
+        $sc->name = 'Scripted question';
+        $sc->questiontext = 'The number is currently {x}. What is {x} plus three?';
+        $sc->generalfeedback = 'General Feedback: This addition was scripted.';
+        $sc->init_code = 'x = 3; y = 4; z = 5.1';
+        $sc->usecase = false;
+        $sc->language = 'lua';
+        $sc->answer_mode = qtype_scripted_answer_mode :: MODE_MUST_EQUAL;
+        $sc->response_mode = qtype_scripted_response_mode :: MODE_NUMERIC;
+        $sc->qtype = question_bank::get_qtype('scripted');
+
+        //Create the potential answers...
+        $sc->answers = array(
+            13 => new question_answer(13, 'x + 3', 1.0, 'You added three correctly.', FORMAT_HTML),
+            14 => new question_answer(14, 'x + 2', 0.8, 'You added two, which is almost three.', FORMAT_HTML),
+            15 => new question_answer(15, 'x',     0.0, 'You didn\'t add at all.', FORMAT_HTML),
+        );
+
+        //And return the newly created question.
+        return $sc;
     }
 
     /**
@@ -68,88 +77,24 @@ class qtype_scripted_test_helper extends question_test_helper {
      * This question also has a '*' match anything answer.
      * @return stdClass
      */
-    public function get_scripted_question_data_frogtoad() {
+    public function get_scripted_question_data_lua_numeric() {
         $qdata = new stdClass();
         test_question_maker::initialise_question_data($qdata);
 
-        $qdata->qtype = 'scripted';
-        $qdata->name = 'Short answer question';
-        $qdata->questiontext = 'Name an amphibian: __________';
-        $qdata->generalfeedback = 'Generalfeedback: frog or toad would have been OK.';
+        $sc = $this->make_scripted_question_lua_numeric();
 
+        $qdata->qtype = 'scripted';
+        $qdata->name = $sc->name;
+        $qdata->questiontext = $sc->questiontext;
+        $qdata->generalfeedback = $sc->generalfeedback;
+
+        //Copy the options from the question type.
         $qdata->options = new stdClass();
-        $qdata->options->usecase = false;
-        $qdata->options->answers = array(
-            13 => new question_answer(13, 'frog', 1.0, 'Frog is a very good answer.', FORMAT_HTML),
-            14 => new question_answer(14, 'toad', 0.8, 'Toad is an OK good answer.', FORMAT_HTML),
-            15 => new question_answer(15, '*', 0.0, 'That is a bad answer.', FORMAT_HTML),
-        );
+        foreach(array('init_code', 'usecase', 'language', 'answer_mode', 'response_mode', 'answers') as $property) {
+            $qdata->options->$property = $sc->$property;
+        }
 
         return $qdata;
     }
 
-    /**
-     * Makes a scripted question with just the correct ansewer 'frog', and
-     * no other answer matching.
-     * @return qtype_scripted_question
-     */
-    public function make_scripted_question_frogonly() {
-        question_bank::load_question_definition_classes('scripted');
-        $sa = new qtype_scripted_question();
-        test_question_maker::initialise_a_question($sa);
-        $sa->name = 'Short answer question';
-        $sa->questiontext = 'Name the best amphibian: __________';
-        $sa->generalfeedback = 'Generalfeedback: you should have said frog.';
-        $sa->usecase = false;
-        $sa->answers = array(
-            13 => new question_answer(13, 'frog', 1.0, 'Frog is right.', FORMAT_HTML),
-        );
-        $sa->qtype = question_bank::get_qtype('scripted');
-
-        return $sa;
-    }
-
-    /**
-     * Gets the question data for a scripted questionwith just the correct
-     * ansewer 'frog', and no other answer matching.
-     * @return stdClass
-     */
-    public function get_scripted_question_data_frogonly() {
-        $qdata = new stdClass();
-        test_question_maker::initialise_question_data($qdata);
-
-        $qdata->qtype = 'scripted';
-        $qdata->name = 'Short answer question';
-        $qdata->questiontext = 'Name the best amphibian: __________';
-        $qdata->generalfeedback = 'Generalfeedback: you should have said frog.';
-
-        $qdata->options = new stdClass();
-        $qdata->options->usecase = false;
-        $qdata->options->answers = array(
-            13 => new question_answer(13, 'frog', 1.0, 'Frog is right.', FORMAT_HTML),
-        );
-
-        return $qdata;
-    }
-
-    /**
-     * Makes a scripted question with just the correct ansewer 'frog', and
-     * no other answer matching.
-     * @return qtype_scripted_question
-     */
-    public function make_scripted_question_escapedwildcards() {
-        question_bank::load_question_definition_classes('scripted');
-        $sa = new qtype_scripted_question();
-        test_question_maker::initialise_a_question($sa);
-        $sa->name = 'Question with escaped * in the answer.';
-        $sa->questiontext = 'How to you write x times y in C? __________';
-        $sa->generalfeedback = 'In C, this expression is written x * y.';
-        $sa->usecase = false;
-        $sa->answers = array(
-            13 => new question_answer(13, '*x\*y*', 1.0, 'Well done.', FORMAT_HTML),
-        );
-        $sa->qtype = question_bank::get_qtype('scripted');
-
-        return $sa;
-    }
 }

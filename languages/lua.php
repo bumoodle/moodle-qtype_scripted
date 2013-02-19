@@ -107,9 +107,19 @@ class qtype_scripted_language_lua extends qtype_scripted_language {
     }
 
   
-    private static function wrap_with_json($code) {
-        //TODO: Throw an exception if an unclosed grouping operator is encountered.
+    private function wrap_with_json($code) {
+        $this->validate_expression($code); 
         return 'print(json.encode({'.$code.'}))';
+    }
+
+    /**
+     * Verifies that a given expression can be used with wrap_with_json.
+     * If the expression is invalid, raises an exception.
+     */ 
+    private function validate_expression($expression) {
+        //Ensure that the expression is assignable.
+        //This prevents an ugly error message for invalid expressions.
+        $this->execute('result ='.$expression);
     }
 
     /**
@@ -129,20 +139,6 @@ class qtype_scripted_language_lua extends qtype_scripted_language {
         if($values) {
             $this->environment = $values;
         }
-    }
-  
-    /**
-     * Gets an associative array containing all given mathscript values.
-     */
-    public function get_functions() {
-        return array();
-    }
-  
-    /**
-     * Sets all variables in the current interpreter's environment.
-     * @param array $values Associative array mapping name to value.
-     */
-    public function set_functions($values) {
     }
 
     /**
@@ -230,13 +226,36 @@ class qtype_scripted_language_lua extends qtype_scripted_language {
      * Creates short "function" stubs in the target array for each of the provided
      * instructions. Used to show functions
      */
-    private static function stub_functions(&$target, $path_prefix, $function_array, $stub_with='<function hash=?>') {
+    private static function stub_functions(&$target, $path_prefix, $function_array, $stub_with='<function #?>') {
         //Create a simple function stub for each of the provided functions.
         foreach($function_array as $name => $function) {
-            $stub = str_replace('?', md5($function), $stub_with);
+            $stub = str_replace('?', self::get_unique_function_number($function), $stub_with);
             $target[self::compute_path($name, $path_prefix)] = $stub;
         }
     }
+
+    /**
+     * Assign each function a unique ID according to its contents.
+     * This allows each function to be uniquely identified with an expression that's 
+     * shorter than a hash.
+     */
+    private static function get_unique_function_number($function) {
+    
+        static $functions = array();
+
+        //If this function has already been assigned a number, find it.
+        $uid = array_search($function, $functions);
+
+        //Otherwise, assign it a new, unique number.
+        if($uid === false) {
+            $uid = count($functions);
+            $functions[] = $function; 
+        }
+
+        //Return the function's unique ID.
+        return $uid;
+    }
+
 
     /**
      * Extracts information from a raised exception.

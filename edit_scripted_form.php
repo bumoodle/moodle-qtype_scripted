@@ -66,7 +66,7 @@ class qtype_scripted_edit_form extends qtype_shortanswer_edit_form {
     *
     * @param MoodleQuickForm $mform the form being built.
     */
-    function definition_inner($mform) {
+    protected function definition_inner($mform) {
     	global $CFG;
 
         //determine how the response will be interepteted (e.g. as a number)

@@ -137,7 +137,7 @@ class qtype_scripted_question extends question_graded_by_strategy implements que
      * @param array $funcs                  An associative array, which contains function definitions.
      * @return void
      */
-    protected function apply_code_result(question_attempt_step $step, array $vars, array $funcs) {
+    public function apply_code_result(question_attempt_step $step, array $vars, array $funcs) {
         //store the list of variables after the execution, for storage in the database
         $step->set_qt_var('_vars',  self::safe_serialize($vars));
         $step->set_qt_var('_funcs', self::safe_serialize($funcs));
@@ -160,7 +160,7 @@ class qtype_scripted_question extends question_graded_by_strategy implements que
      * @access public
      * @return array    
      */
-    public static function execute_script($code, $question_text = false, $vars = false, $functions = false, $language='mathscript') {
+    public static function execute_script($code, $question_text = false, $vars = false, $functions = false, $language='lua') {
         //Create a scripting language interpreter.
         $interpreter = qtype_scripted_language_manager::create_interpreter($language, $vars, $functions);
 
@@ -369,6 +369,7 @@ class qtype_scripted_question extends question_graded_by_strategy implements que
         //Evaluate all of the question's inline code.
         $operations = array(2 => 'execute', 1=> 'evaluate');
         foreach($operations as $bracket_level => $operation) {
+          $interpreter = $this->create_interpreter($this->vars, $this->funcs);
           $questiontext = $this->handle_inline_code($questiontext, $bracket_level, $operation);
         }
 
@@ -388,10 +389,7 @@ class qtype_scripted_question extends question_graded_by_strategy implements que
      * @return string The question text with the all inline code evaluated. Executed code is replaced by its "standard output"; while evaluated code is
      *     replaced by the result of the evaluated expressions.
      */
-    private function handle_inline_code($text, $match_level = 1, $mode = 'evaluate', $interpreter = null, $show_errors = false) {
-
-      //If we haven't been provided with an interpreter, create a new one.
-      $interpreter = $interpreter ?: $this->create_interpreter($this->vars, $this->funcs);
+    public static function handle_inline_code($text, $match_level = 1, $mode = 'evaluate', $interpreter = null, $show_errors = false) {
 
       //Create a callback lambda which evaluates each block of inline code.
       $callback = function($matches) use($interpreter, $mode, $show_errors) {

@@ -370,7 +370,7 @@ class qtype_scripted_question extends question_graded_by_strategy implements que
         $operations = array(2 => 'execute', 1=> 'evaluate');
         foreach($operations as $bracket_level => $operation) {
           $interpreter = $this->create_interpreter($this->vars, $this->funcs);
-          $questiontext = $this->handle_inline_code($questiontext, $bracket_level, $operation);
+          $questiontext = $this->handle_inline_code($questiontext, $bracket_level, $operation, $interpreter);
         }
 
         //run the question text through the basic moodle formatting engine
@@ -389,7 +389,7 @@ class qtype_scripted_question extends question_graded_by_strategy implements que
      * @return string The question text with the all inline code evaluated. Executed code is replaced by its "standard output"; while evaluated code is
      *     replaced by the result of the evaluated expressions.
      */
-    public static function handle_inline_code($text, $match_level = 1, $mode = 'evaluate', $interpreter = null, $show_errors = false) {
+    public static function handle_inline_code($text, $match_level = 1, $mode = 'evaluate', $interpreter, $show_errors = false) {
 
       //Create a callback lambda which evaluates each block of inline code.
       $callback = function($matches) use($interpreter, $mode, $show_errors) {
@@ -575,7 +575,7 @@ class qtype_scripted_question extends question_graded_by_strategy implements que
     /**
      * @deprecated Use handle_inline_code instead.
      */
-    public function fill_in_variables($text, $interpreter = null) {
+    public function fill_in_variables($text, $interpreter) {
       //Pass the value to the newer handle-inline-code.
       return $this->handle_inline_code($text, $interpreter, 1, 'evaluate');
     }

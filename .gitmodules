@@ -1,6 +1,6 @@
 [submodule "mathscript"]
-	path = mathscript
+	path = lib/mathscript
 	url = git@github.com:bumoodle/MathScript.git
 [submodule "lib/looah"]
-	path = lib/looah
-	url = git@github.com:ktemkin/looah.git
+	path = lib/lua
+	url = git@github.com:bumoodle/looah.git

@@ -117,7 +117,7 @@ class qtype_scripted_edit_form extends qtype_shortanswer_edit_form {
         //if we're to include a header, insert the header object
         if($header)
         {
-            $this->add_editor_header();
+            self::add_editor_header();
             $this->_form->addElement('header', 'optionsblock', get_string('options', 'qtype_scripted'));
         }
 

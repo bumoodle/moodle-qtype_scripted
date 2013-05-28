@@ -57,4 +57,8 @@ class qtype_scripted extends qtype_shortanswer {
       //We can't really estimate this.
       return null;
     }
+
+    public function questionid_column_name() {
+        return 'question';
+    }
 }

@@ -358,24 +358,23 @@ class qtype_scripted_question extends question_graded_by_strategy implements que
     /**
      * Inserts the varaibles for the given question text, then calls the basic formatter.
      */
-    public function format_questiontext($qa)
+    public function format_text($text, $format, $qa, $component, $filearea, $itemid)
     {
         //get a list of varaibles created by the initialization script 
         $vars = self::safe_unserialize($qa->get_last_qt_var('_vars'));
-
-        //execute any code in double brackets _first_
-        $questiontext = $this->questiontext;
+        $funcs = self::safe_unserialize($qa->get_last_qt_var('_funcs'));
 
         //Evaluate all of the question's inline code.
         $operations = array(2 => 'execute', 1=> 'evaluate');
         foreach($operations as $bracket_level => $operation) {
-          $interpreter = $this->create_interpreter($this->vars, $this->funcs);
-          $questiontext = $this->handle_inline_code($questiontext, $bracket_level, $operation, $interpreter);
+          $interpreter = $this->create_interpreter($vars, $funcs);
+          $text = $this->handle_inline_code($text, $bracket_level, $operation, $interpreter);
         }
 
         //run the question text through the basic moodle formatting engine
-        return $this->format_text($questiontext, $this->questiontextformat, $qa, 'question', 'questiontext', $this->id);
+        return parent::format_text($text, $format, $qa, $component, $filearea, $itemid);
     }
+
 
     /**
      * Evalutes inline-code (code surrounded in curly braces) provided as part of the question.

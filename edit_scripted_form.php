@@ -119,6 +119,7 @@ class qtype_scripted_edit_form extends qtype_shortanswer_edit_form {
         {
             self::add_editor_header();
             $this->_form->addElement('header', 'optionsblock', get_string('options', 'qtype_scripted'));
+            $this->_form->setExpanded('optionsblock');
         }
 
         //if no string was provided, use the phrase "initialization script" 

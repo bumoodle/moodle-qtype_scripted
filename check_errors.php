@@ -3,7 +3,7 @@
 //Set up our Moodle session...
 define('AJAX_SCRIPT', true);
 require_once('../../../config.php');
-require_once('locallib.php');
+require_once('lib.php');
 
 //Ensure that only logged in users can check scripts.
 //(This allows us to limit the general usage.)
@@ -30,6 +30,8 @@ function send_errors($errors) {
  */
 function summarize_execution($variables) {
 
+    ksort($variables);
+
     $html = '';
 
     $html = html_writer::start_tag('div', array('class' => 'code-result'));
@@ -48,6 +50,7 @@ function summarize_execution($variables) {
     //Render the table, close the containing div, and return the code for the summary.
     $html .= html_writer::table($table);
     $html .= html_writer::end_tag('div');
+
     return $html;
 }
 

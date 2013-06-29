@@ -168,7 +168,7 @@ class qtype_scripted_language_lua extends qtype_scripted_language {
 
             //If this environment contains a set of Lua functions, create "stubs" which denote the 
             //presence of the given function.
-            if($name == '_FUNCTIONS') {
+            if($name == '_FUNCTIONS' && is_array($value)) {
                 self::stub_functions($target, $path_prefix, $value);
             } 
             //Otherwise, if we have an array, strip all functions from that array. 
@@ -176,7 +176,7 @@ class qtype_scripted_language_lua extends qtype_scripted_language {
                 self::summarize_environment($value, $target, self::compute_path($name, $path_prefix));
             }
             else {
-                $target[self::compute_path($name, $path_prefix)] = $value;
+                $target[self::compute_path($name, $path_prefix)] = var_export($value, true);
             }
         }
     }
@@ -226,7 +226,8 @@ class qtype_scripted_language_lua extends qtype_scripted_language {
      * Creates short "function" stubs in the target array for each of the provided
      * instructions. Used to show functions
      */
-    private static function stub_functions(&$target, $path_prefix, $function_array, $stub_with='<function #?>') {
+    private static function stub_functions(&$target, $path_prefix, $function_array, $stub_with='<function #? >') {
+        
         //Create a simple function stub for each of the provided functions.
         foreach($function_array as $name => $function) {
             $stub = str_replace('?', self::get_unique_function_number($function), $stub_with);

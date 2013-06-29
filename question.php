@@ -26,7 +26,7 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-require_once($CFG->dirroot.'/question/type/scripted/locallib.php');
+require_once($CFG->dirroot.'/question/type/scripted/lib.php');
 
 class qtype_scripted_response_mode {
 
@@ -91,7 +91,6 @@ class qtype_scripted_question extends question_graded_by_strategy implements que
     public $language;
 
 
-
     /**
      * Creates a new Scripted question instance.
      */
@@ -122,7 +121,7 @@ class qtype_scripted_question extends question_graded_by_strategy implements que
     */
     public function start_attempt(question_attempt_step $step, $variant) {
         //evaluate the initialization script, ensuring that all variables defined in the question text are initialized
-        list(, $vars, $funcs) = self::execute_script($this->init_code, $this->questiontext, null, null, $this->language);
+        list(, $vars, $funcs) = qtype_scripted_language_manager::execute_script($this->language, $this->init_code);
 
         //and apply the result of the code
         $this->apply_code_result($step, $vars, $funcs);
@@ -138,9 +137,10 @@ class qtype_scripted_question extends question_graded_by_strategy implements que
      * @return void
      */
     public function apply_code_result(question_attempt_step $step, array $vars, array $funcs) {
+
         //store the list of variables after the execution, for storage in the database
-        $step->set_qt_var('_vars',  self::safe_serialize($vars));
-        $step->set_qt_var('_funcs', self::safe_serialize($funcs));
+        $step->set_qt_var('_vars',  json_encode($vars));
+        $step->set_qt_var('_funcs', json_encode($funcs));
         
         //store a local copy of the script state
         $this->vars = $vars;
@@ -176,10 +176,9 @@ class qtype_scripted_question extends question_graded_by_strategy implements que
      * @see question_definition::apply_attempt_state()
      */
     public function apply_attempt_state(question_attempt_step $step) {
-
         //Restore the serialized variables and functions.
-        $this->vars = self::safe_unserialize($step->get_qt_var('_vars'));
-        $this->funcs = self::safe_unserialize($step->get_qt_var('_funcs'));
+        $this->vars = json_decode($step->get_qt_var('_vars'));
+        $this->funcs = json_decode($step->get_qt_var('_funcs'));
     }
     
     
@@ -188,7 +187,7 @@ class qtype_scripted_question extends question_graded_by_strategy implements que
      */
     public function summarise_response(array $response) {
         //If an answer has been provided, return it.
-        return isset($response['answer']) ? $response['answer'] : null;
+        return array_key_exists('answer', $response) ? $response['answer'] : null;
     }
 
     /***
@@ -286,11 +285,15 @@ class qtype_scripted_question extends question_graded_by_strategy implements que
             case qtype_scripted_answer_mode::MODE_MUST_EQUAL:
         
                 //evaluate the given answer formula
-                $ans = $interpreter->evaluate($answer->answer);
+                try {
+                    $ans = $interpreter->evaluate($answer->answer);
+                } catch(qtype_scripted_language_exception $e) {
+                    return false;
+                }
     
                 //if we're comparing in a non-case-sensitive manner, convert the _answer_ to lowercase
                 if($this->response_mode === qtype_scripted_response_mode::MODE_STRING) {
-                    $ans = strtolower($ans);
+                    $ans = strtolower((string)$ans);
                 }
 
                  //if the two are both numeric, compare them loosely, without regard to type; so 5 == "05" is true
@@ -361,8 +364,14 @@ class qtype_scripted_question extends question_graded_by_strategy implements que
     public function format_text($text, $format, $qa, $component, $filearea, $itemid)
     {
         //get a list of varaibles created by the initialization script 
-        $vars = self::safe_unserialize($qa->get_last_qt_var('_vars'));
-        $funcs = self::safe_unserialize($qa->get_last_qt_var('_funcs'));
+        $vars = json_decode($qa->get_last_qt_var('_vars'));
+        $funcs = json_decode($qa->get_last_qt_var('_funcs'));
+
+        $text = qtype_scripted_language_manager::format_text($text, $this->language, $vars, $funcs);
+
+        //run the question text through the basic moodle formatting engine
+        return parent::format_text($text, $format, $qa, $component, $filearea, $itemid);
+
 
         //Evaluate all of the question's inline code.
         $operations = array(2 => 'execute', 1=> 'evaluate');
@@ -525,57 +534,55 @@ class qtype_scripted_question extends question_graded_by_strategy implements que
             return null;
         }
 
+        // Evaluate the given answer, and return a correct-response array.
+        $answer = $this->evaluate_answer(parent::get_correct_answer());
+        return array('answer' => $answer->answer);
+    }
+
+    /**
+     * Evaluates an answer object, replacing its answer expression with an evaluated result.
+     * @param question_answer $answerobj The answer object to be evaluated.
+     * @param qtype_scripted_language Optional; an interpreter to be used to evaluate the answer. 
+     */ 
+    public function evaluate_answer($answerobj, $interpreter = null) {
+
+        //Create a copy of the given answer...
+        $answer = clone $answerobj;
+
         //create a new interpreter
-        $interpreter = $this->create_interpreter($this->vars, $this->funcs);
+        if(!$interpreter) {
+            $interpreter = $this->create_interpreter($this->vars, $this->funcs);
+        }
          
         //evaluate the correct answer to get a given reponse, if possible
-        $answer_script = $this->get_correct_answer()->answer;
-        $answer = array('answer' => $interpreter->evaluate($answer_script));
+        try {
+            $answer->answer = $interpreter->evaluate($answer->answer);
+        } catch(qtype_scripted_language_exception $e) {
+            debugging($e->getMessage());
+            return null;
+        }
 
         //return the correct answer depending on the response mode
         switch($this->response_mode)
         {
             //if the answer is expected in binary, return the answer in binary
             case qtype_scripted_response_mode::MODE_BINARY:
-                $answer['answer'] = decbin($answer['answer']);
-                return $answer;
+                $answer->answer = decbin($answer->answer);
+                break;
     
             //if the answer is expected in hex, return the answer in hex
             case qtype_scripted_response_mode::MODE_HEXADECIMAL:
-                $answer['answer'] = dechex($answer['answer']);
-                return $answer;
+                $answer->answer = dechex($answer->answer);
+                break;
 
            //if the answer is expected in binary, return the answer in binary
             case qtype_scripted_response_mode::MODE_OCTAL:
-                $answer['answer'] = decoct($answer['answer']);
-                return $answer;
-
-            //for any other type, return the answer directly
-            default:
-                return $answer;
+                $answer->answer = decoct($answer->answer);
+                break;
         }
-    }
-    
-    /**
-     * Wrapper which specifies the method by which we want to serialzie script data.
-     */
-    static function safe_serialize($object) {
-        return json_encode($object);
-    }
-    
-    /**
-    * Wrapper for unserialization; currently used in the event that we want to globally implement some safe serialization for
-    * this question type.
-    */
-    static function safe_unserialize($string) {
-        return json_decode($string, true);
-    }
 
-    /**
-     * @deprecated Use handle_inline_code instead.
-     */
-    public function fill_in_variables($text, $interpreter) {
-      //Pass the value to the newer handle-inline-code.
-      return $this->handle_inline_code($text, $interpreter, 1, 'evaluate');
+        return $answer;
+
     }
+    
 }

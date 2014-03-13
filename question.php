@@ -272,6 +272,11 @@ class qtype_scripted_question extends question_graded_by_strategy implements que
      */
     public function compare_response_with_answer(array $response, question_answer $answer) {      
 
+        // Tentative: if this response isn't gradable, it can't match any of the answers.
+        if(!$this->is_gradable_response($response)) {
+            return false;
+        }
+
         //parse the response according to the selected response mode
         $value = $this->parse_response($response);
     

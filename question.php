@@ -297,7 +297,7 @@ class qtype_scripted_question extends question_graded_by_strategy implements que
                 }
     
                 //if we're comparing in a non-case-sensitive manner, convert the _answer_ to lowercase
-                if($this->response_mode === qtype_scripted_response_mode::MODE_STRING) {
+                if($this->response_mode == qtype_scripted_response_mode::MODE_STRING) {
                     $ans = strtolower((string)$ans);
                 }
 

@@ -41,16 +41,16 @@ class restore_qtype_scripted_plugin extends restore_qtype_plugin {
 
         $paths = array();
 
-        // This qtype uses question_answers, add them
+        // This qtype uses question_answers, add them.
         $this->add_question_question_answers($paths);
 
-        // Add own qtype stuff
+        // Add own qtype stuff.
         $elename = 'scripted';
-        // we used get_recommended_name() so this works
+        // We used get_recommended_name() so this works.
         $elepath = $this->get_pathfor('/scripted');
         $paths[] = new restore_path_element($elename, $elepath);
 
-        return $paths; // And we return the interesting paths
+        return $paths; // And we return the interesting paths.
     }
 
     /**
@@ -62,26 +62,17 @@ class restore_qtype_scripted_plugin extends restore_qtype_plugin {
         $data = (object)$data;
         $oldid = $data->id;
 
-        // Detect if the question is created or mapped
+        // Detect if the question is created or mapped.
         $oldquestionid   = $this->get_old_parentid('question');
         $newquestionid   = $this->get_new_parentid('question');
         $questioncreated = $this->get_mappingid('question_created', $oldquestionid) ? true : false;
 
         // If the question has been created by restore, we need to create its
-        // question_scripted too
+        // qtype_scripted_options too, if they are defined (the gui should ensure this).
         if ($questioncreated) {
-            // Adjust some columns
-            $data->question = $newquestionid;
-            // Map sequence of question_answer ids
-            $answersarr = explode(',', $data->answers);
-            foreach ($answersarr as $key => $answer) {
-                $answersarr[$key] = $this->get_mappingid('question_answer', $answer);
-            }
-            $data->answers = implode(',', $answersarr);
-            // Insert record
-            $newitemid = $DB->insert_record('question_scripted', $data);
-            // Create mapping
-            $this->set_mapping('question_scripted', $oldid, $newitemid);
+            $data->questionid = $newquestionid;
+            $newitemid = $DB->insert_record('qtype_scripted_options', $data);
+            $this->set_mapping('qtype_scripted_options', $oldid, $newitemid);
         }
     }
 }

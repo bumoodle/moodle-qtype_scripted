@@ -52,7 +52,7 @@ class backup_qtype_scripted_plugin extends backup_qtype_plugin {
         $this->add_question_question_answers($pluginwrapper);
 
         // Now create the qtype own structures
-        $scripted = new backup_nested_element('scripted', array('id'), array( 'answers', 'init_code', 'answer_mode', 'response_mode'));
+        $scripted = new backup_nested_element('scripted', array('id'), array('init_code', 'answer_mode', 'response_mode'));
 
         // Now the own qtype tree
         $pluginwrapper->add_child($scripted);

@@ -271,7 +271,7 @@ abstract class qtype_scripted_language {
    * gets the value of a given variable.
    */
   public function set_variable($name, $value) {
-    $vars = $this->get_variables();
+    $vars = (array)$this->get_variables();
     $vars[$name] = $value;
     $vars = $this->set_variables($vars);
   }

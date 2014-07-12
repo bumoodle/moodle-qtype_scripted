@@ -104,10 +104,7 @@ class qtype_scripted_renderer extends qtype_renderer
             return '';
         }
 
-        //replace any variables in the feedback with their values
-        $feedback = $question->fill_in_variables($answer->feedback);
-
-        return $question->format_text($feedback, $answer->feedbackformat, $qa, 'question', 'answerfeedback', $answer->id);
+        return $question->format_text($answer->feedback, $answer->feedbackformat, $qa, 'question', 'answerfeedback', $answer->id);
     }
 
     public function correct_response(question_attempt $qa) 

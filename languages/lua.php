@@ -166,6 +166,9 @@ class qtype_scripted_language_lua extends qtype_scripted_language {
         //For each variable in the environment...
         foreach($environment as $name => $value) {
 
+            //Determine the "path" to the given variable, for the float.
+            $path = self::compute_path($name, $path_prefix);
+
             //If this environment contains a set of Lua functions, create "stubs" which denote the 
             //presence of the given function.
             if($name == '_FUNCTIONS' && is_array($value)) {
@@ -175,8 +178,12 @@ class qtype_scripted_language_lua extends qtype_scripted_language {
             else if(is_array($value)) {
                 self::summarize_environment($value, $target, self::compute_path($name, $path_prefix));
             }
+            //Otherwise, if this is a float, 
+            else if(is_float($value)) {
+                $target[$path] = $value;
+            }
             else {
-                $target[self::compute_path($name, $path_prefix)] = var_export($value, true);
+                $target[$path] = var_export($value, true);
             }
         }
     }

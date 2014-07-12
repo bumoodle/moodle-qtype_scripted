@@ -26,7 +26,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 global $CFG;
-require_once($CFG->dirroot.'/question/type/scripted/locallib.php');
+require_once($CFG->dirroot.'/question/type/scripted/lib.php');
 
 /**
  * Unit tests for the scripted question definition class.
@@ -100,6 +100,17 @@ class qtype_scripted_language_lua_test extends advanced_testcase {
         $this->assertEquals($this->lua->y, 4);
     }
 
+    public function test_simple_operations_do_not_induce_floating_point_instability() {
+        $this->lua->execute('x = 811 / 100');
+
+        //Ensure that the relevant variable is correctly summarized...
+        $expected_output = array('x' => 8.11);
+        $this->assertEquals($expected_output, $this->lua->summarize_variables());
+
+        //...and that it evaluates to the correct value.
+        $this->assertEquals($this->lua->evaluate('x'), 8.11);  
+    }
+
     public function test_summarize_variables_produces_flat_output() {
         
         //Set up a sample lua environment, and predict the output for that environment.
@@ -113,8 +124,8 @@ class qtype_scripted_language_lua_test extends advanced_testcase {
             'func' => '<function #0>'
         );
 
-        //Verify our predition.
-        $this->assertEquals($this->lua->summarize_variables(), $expected_output);
+        //Verify our prediction.
+        $this->assertEquals($expected_output, $this->lua->summarize_variables());
 
     }
 

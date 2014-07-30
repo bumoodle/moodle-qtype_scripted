@@ -57,6 +57,7 @@ class restore_qtype_scripted_plugin extends restore_qtype_plugin {
      * Process the qtype/scripted element
      */
     public function process_scripted($data) {
+
         global $DB;
 
         $data = (object)$data;
@@ -68,11 +69,11 @@ class restore_qtype_scripted_plugin extends restore_qtype_plugin {
         $questioncreated = $this->get_mappingid('question_created', $oldquestionid) ? true : false;
 
         // If the question has been created by restore, we need to create its
-        // qtype_scripted_options too, if they are defined (the gui should ensure this).
+        // qtype_shortanswer_options too, if they are defined (the gui should ensure this).
         if ($questioncreated) {
-            $data->questionid = $newquestionid;
-            $newitemid = $DB->insert_record('qtype_scripted_options', $data);
-            $this->set_mapping('qtype_scripted_options', $oldid, $newitemid);
+            $data->question = $newquestionid;
+            $newitemid = $DB->insert_record('question_scripted', $data);
+            $this->set_mapping('question_scripted', $oldid, $newitemid);
         }
     }
 }

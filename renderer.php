@@ -114,10 +114,14 @@ class qtype_scripted_renderer extends qtype_renderer
     	
     	//get the correct response for the given question
     	$correct_response = $question->get_correct_response();
-    	$answer = $correct_response['answer'];
 
-		//and return a 
-        return get_string('correctansweris', 'qtype_scripted', s($answer));
+		// ... and return a the answer, if one is provided.
+        if($correct_response) {
+            $answer = $correct_response['answer'];
+            return get_string('correctansweris', 'qtype_scripted', s($answer));
+        } else {
+            return null;
+        }
     }
     
 

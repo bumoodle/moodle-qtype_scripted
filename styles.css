@@ -13,7 +13,7 @@
 .code-result table { margin-left: auto; margin-right: auto; }
 .code-result th { padding: 8px; !important; border-bottom: 1px solid #000; }
 .code-result td { padding: 8px; !important; text-align: center; font-style: italic; font-family: 'Incosolata', monospace; }
-.code-result td:first-child, th:first-child { border-right: 1px solid #000; }
+.code-result td:first-child, .code-result th:first-child { border-right: 1px solid #000; }
 
 .footnote { font-size: 8pt; font-style: italic;}
 
